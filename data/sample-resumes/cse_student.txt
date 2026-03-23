@@ -1,0 +1,23 @@
+CSE Student Resume  
+------------------  
+Name: Ananya Sharma  
+
+Skills:  
+- Python, SQL, Data Structures, APIs, Machine Learning, Problem Solving  
+
+Education:  
+B.Tech in Computer Science and Engineering  
+XYZ University | Expected Graduation: May 2026  
+CGPA: 8.7/10  
+
+Projects:  
+1. Movie Recommendation System (Machine Learning)  
+   - Built a content-based recommendation engine using Python and Pandas.  
+   - Utilized collaborative filtering techniques to improve accuracy by 15%.  
+
+2. Task Management Web App  
+   - Developed a full-stack web application with Flask for backend and HTML/CSS for frontend.  
+   - Integrated SQLite database to store user tasks and implemented RESTful APIs for data retrieval.  
+
+Experience:  
+No professional experience yet.  

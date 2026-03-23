@@ -1,0 +1,30 @@
+Software Engineer Resume  
+------------------------  
+Name: Rohan Mehta  
+
+Skills:  
+- Node.js, React, MongoDB, APIs, AWS, Cloud Computing  
+
+Work Experience:  
+Backend Developer  
+TechNova Solutions | June 2023 – Present  
+- Designed and implemented scalable REST APIs that reduced server response time by 30%.  
+- Optimized database queries in MongoDB, improving query performance by 40%.  
+- Deployed microservices on AWS, ensuring 99.9% uptime for critical applications.  
+
+Full-Stack Developer Intern  
+CodeWave Technologies | Jan 2022 – May 2023  
+- Developed an e-commerce dashboard using React and Node.js, handling over 10k daily users.  
+- Automated report generation using Python scripts, saving 5 hours of manual work weekly.  
+
+Projects:  
+- Real-Time Chat Application  
+  - Built using WebSocket protocol and React for real-time messaging functionality.  
+  - Hosted the app on AWS Elastic Beanstalk for seamless scaling.  
+
+Education:  
+B.E. in Information Technology  
+ABC College of Engineering | Graduated: May 2022  
+CGPA: 8.2/10  
+
+

@@ -1,0 +1,23 @@
+Fresher Resume  
+---------------  
+Name: Priya Patel  
+
+Skills:  
+- Excel, Communication, Problem Solving, Basic Programming, Teamwork  
+
+Education:  
+Bachelor of Commerce  
+PQR University | Graduated: June 2025  
+Percentage: 78%  
+
+Projects / Internship:  
+Internship at Alpha Finance Ltd  
+- Assisted in preparing financial reports using Excel, reducing errors by 20%.  
+- Conducted market research and presented findings to senior management.  
+
+College Project: Budget Tracker Tool  
+- Created a simple budget tracking tool using basic programming concepts in Python.  
+- Enabled users to input expenses and view monthly summaries in graphical format.  
+
+Experience:  
+No prior professional experience.
