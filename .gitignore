@@ -1,0 +1,26 @@
+# Node.js (Frontend & Backend)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Vite Build Output
+frontend/dist/
+frontend/build/
+.env
+
+# Python (AI Services)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS / Environment Defaults
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
