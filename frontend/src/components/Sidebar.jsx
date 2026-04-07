@@ -21,9 +21,6 @@ export default function Sidebar() {
         <NavLink to="/interview" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <span className="material-icons">record_voice_over</span> Interview Prep
         </NavLink>
-        <button className="nav-link" style={{border:'none', background:'none', width:'100%', textAlign:'left', cursor:'pointer'}}>
-          <span className="material-icons">psychology</span> Skill Labs
-        </button>
       </nav>
       <div className="sidebar-footer">
         <button className="nav-link" style={{border:'none', background:'none', width:'100%', textAlign:'left', cursor:'pointer'}}>

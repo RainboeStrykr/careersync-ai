@@ -1,43 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Roadmap({ pivotResults }) {
   const [phases, setPhases] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [activePhase, setActivePhase] = useState(0);
   const [donePhases, setDonePhases] = useState([]);
 
-  useEffect(() => {
+  const fetchDetailed = useCallback(async () => {
     if (!pivotResults) return;
+    setLoading(true);
+    setFetchError(false);
+    try {
+      const res = await fetch('http://localhost:5000/roadmap/detailed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          timeline: pivotResults.timeline || '1 Week',
+          target_domain: pivotResults.target_domain || '',
+          skills: pivotResults.skills || [],
+          gaps: pivotResults.gaps || [],
+        }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const p = data.phases || [];
+      if (p.length === 0) throw new Error('Empty phases');
+      setPhases(p);
+    } catch (e) {
+      console.error(e);
+      setFetchError(true);
+      setPhases([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [pivotResults]);
+
+  useEffect(() => {
     setDonePhases([]);
     setActivePhase(0);
-
-    const fetchDetailed = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch('http://localhost:5000/roadmap/detailed', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            timeline: pivotResults.timeline || '1 Week',
-            target_domain: pivotResults.target_domain || '',
-            skills: pivotResults.skills || [],
-            gaps: pivotResults.gaps || [],
-          }),
-        });
-        if (!res.ok) throw new Error('Failed');
-        const data = await res.json();
-        setPhases(data.phases || []);
-      } catch (e) {
-        console.error(e);
-        setPhases([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDetailed();
-  }, [pivotResults]);
+  }, [fetchDetailed]);
 
   const markDone = (index) => {
     setDonePhases((prev) =>
@@ -82,7 +86,7 @@ export default function Roadmap({ pivotResults }) {
         <p>Your AI-generated path into {targetDomain}.</p>
       </div>
 
-      {/* Hero banner — no progress bar */}
+      {/* Hero banner */}
       <div className="roadmap-header" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
@@ -109,7 +113,22 @@ export default function Roadmap({ pivotResults }) {
         </div>
       )}
 
-      {!loading && phases.length > 0 && (
+      {/* Error */}
+      {!loading && fetchError && (
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', maxWidth: '480px' }}>
+          <span className="material-icons" style={{ fontSize: '2.5rem', color: 'var(--error)', marginBottom: '0.75rem', display: 'block' }}>error_outline</span>
+          <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, marginBottom: '0.5rem' }}>Could not load roadmap</h3>
+          <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            Make sure the backend server is running, then retry.
+          </p>
+          <button className="btn-primary" style={{ justifyContent: 'center' }} onClick={fetchDetailed}>
+            <span className="material-icons">refresh</span> Retry
+          </button>
+        </div>
+      )}
+
+      {/* Main content */}
+      {!loading && !fetchError && phases.length > 0 && (
         <>
           {/* 4 Phase cards */}
           <div className="roadmap-phases" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '2rem' }}>
@@ -121,14 +140,11 @@ export default function Roadmap({ pivotResults }) {
                   key={i}
                   className={`phase-card${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}
                   onClick={() => setActivePhase(i)}
-                  style={{ cursor: 'pointer', position: 'relative' }}
                 >
                   <div className="phase-number" style={
-                    isDone
-                      ? { background: 'var(--teal-accent)', color: '#fff' }
-                      : isActive
-                      ? { background: 'var(--primary-container)', color: '#fff' }
-                      : {}
+                    isDone ? { background: 'var(--teal-accent)', color: '#fff' }
+                    : isActive ? { background: 'var(--primary-container)', color: '#fff' }
+                    : {}
                   }>
                     {isDone ? '✓' : i + 1}
                   </div>
@@ -142,31 +158,27 @@ export default function Roadmap({ pivotResults }) {
             })}
           </div>
 
-          {/* Bottom grid: resources left, market readiness right */}
+          {/* Bottom grid */}
           <div className="roadmap-bottom">
+            {/* Left: resources for active phase */}
             <div>
               {active && (
                 <>
                   <h3 className="section-title">
-                    Resources — {active.phase}: {active.title}
+                    {active.phase}: {active.title} — Topics
                   </h3>
-
-                  {/* Topics */}
-                  <div className="resource-list" style={{ marginBottom: '1.25rem' }}>
+                  <div className="resource-list" style={{ marginBottom: '1.5rem' }}>
                     {(active.topics || []).map((topic, j) => (
                       <div key={j} className="resource-item" style={{ cursor: 'default' }}>
                         <div className="resource-icon" style={{ background: 'rgba(76,86,175,0.1)' }}>
                           <span className="material-icons" style={{ color: 'var(--primary-mid)' }}>menu_book</span>
                         </div>
-                        <div>
-                          <h5>{topic}</h5>
-                        </div>
+                        <div><h5>{topic}</h5></div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Study resources with links */}
-                  <h3 className="section-title" style={{ marginTop: '1.5rem' }}>Study Links</h3>
+                  <h3 className="section-title">Study Resources</h3>
                   <div className="resource-list" style={{ marginBottom: '1.5rem' }}>
                     {(active.resources || []).map((r, k) => (
                       <a
@@ -180,25 +192,21 @@ export default function Roadmap({ pivotResults }) {
                         <div className="resource-icon" style={{ background: 'rgba(0,191,165,0.1)' }}>
                           <span className="material-icons" style={{ color: 'var(--teal-accent)' }}>open_in_new</span>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <h5>{r.title}</h5>
-                        </div>
+                        <div style={{ flex: 1 }}><h5>{r.title}</h5></div>
                       </a>
                     ))}
                   </div>
 
-                  {/* Tip */}
                   {active.tip && (
-                    <div className="insight-panel">
+                    <div className="insight-panel" style={{ marginBottom: '1.5rem' }}>
                       <span className="ai-chip"><span className="material-icons">auto_awesome</span> Phase Tip</span>
                       <p style={{ marginTop: '0.75rem' }}>{active.tip}</p>
                     </div>
                   )}
 
-                  {/* Mark as done */}
                   <button
                     className={donePhases.includes(activePhase) ? 'btn-secondary' : 'btn-primary'}
-                    style={{ marginTop: '1.5rem', width: '100%', justifyContent: 'center' }}
+                    style={{ width: '100%', justifyContent: 'center' }}
                     onClick={() => markDone(activePhase)}
                   >
                     <span className="material-icons">
@@ -210,7 +218,7 @@ export default function Roadmap({ pivotResults }) {
               )}
             </div>
 
-            {/* Right column: market readiness circle */}
+            {/* Right: market readiness circle */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div className="card">
                 <h3 className="section-title">Market Readiness</h3>
@@ -220,8 +228,8 @@ export default function Roadmap({ pivotResults }) {
                     <circle
                       cx="18" cy="18" r="15.9" fill="none"
                       stroke="url(#readiness-grad)" strokeWidth="2.5"
-                      strokeDasharray={`${circumference}`}
-                      strokeDashoffset={dashOffset}
+                      strokeDasharray={String(circumference)}
+                      strokeDashoffset={String(dashOffset)}
                       strokeLinecap="round"
                       style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                     />
@@ -238,43 +246,14 @@ export default function Roadmap({ pivotResults }) {
                   </div>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', textAlign: 'center' }}>
-                  {donePhases.length === phases.length
-                    ? 'All phases complete — you\'re ready!'
+                  {donePhases.length === phases.length && phases.length > 0
+                    ? "All phases complete — you're ready!"
                     : `${phases.length - donePhases.length} phase${phases.length - donePhases.length !== 1 ? 's' : ''} remaining`}
                 </p>
               </div>
             </div>
           </div>
         </>
-      )}
-
-      {/* Fallback to basic pivot roadmap */}
-      {!loading && phases.length === 0 && pivotResults.roadmap && (
-        <div className="card" style={{ padding: 0 }}>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(198,197,212,0.3)' }}>
-            <h3 className="section-title" style={{ margin: 0 }}>High-Speed Roadmap</h3>
-          </div>
-          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {Object.entries(pivotResults.roadmap).map(([dayLabel, tasks], index, arr) => (
-              <div key={index} style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div className="phase-number" style={{ margin: 0, background: 'var(--primary-container)', color: 'white' }}>{index + 1}</div>
-                  {index < arr.length - 1 && <div style={{ flex: 1, width: '2px', background: 'var(--surface-highest)', margin: '6px 0' }} />}
-                </div>
-                <div style={{ flex: 1, paddingBottom: index < arr.length - 1 ? '1rem' : 0 }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 700 }}>{dayLabel}</h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {Array.isArray(tasks) && tasks.map((task, j) => (
-                      <span key={j} className="ai-chip" style={{ background: 'var(--surface)', color: 'var(--on-surface-variant)', border: '1px solid var(--outline-variant)' }}>
-                        {task}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       )}
     </>
   );

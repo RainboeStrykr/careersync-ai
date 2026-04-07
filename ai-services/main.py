@@ -39,13 +39,10 @@ def home():
 @app.post("/analyze")
 def analyze(data: Request):
 
-    # 🧠 Step 1: Extract Skills
     skills = extract_skills(data.resume_text)
 
-    # 🔄 Step 2: Mapping + Gaps
     mapping_data = map_and_analyze(skills, data.target_domain)
     
-    # Transform mapping data into format expected by frontend
     mapped_skills_dict = {}
     if isinstance(mapping_data, dict) and "mapped_skills" in mapping_data and isinstance(mapping_data["mapped_skills"], list):
         for item in mapping_data["mapped_skills"]:
@@ -62,16 +59,12 @@ def analyze(data: Request):
             elif isinstance(item, str):
                 gaps_list.append(item)
 
-    # 📅 Step 3: Roadmap
     roadmap = generate_roadmap(data.timeline, data.target_domain)
 
-    # 🎤 Step 4: Interview Questions
     questions = generate_questions(data.target_domain)
 
-    # 📈 Step 5: Confidence Score (basic)
     confidence = "80"
 
-    # 📊 Step 6: Dashboard data
     dashboard = generate_dashboard_data(skills, mapped_skills_dict, gaps_list, data.target_domain)
 
     return {
