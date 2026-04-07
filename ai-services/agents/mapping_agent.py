@@ -1,8 +1,8 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+llm = ChatOllama(model='llama3', format='json')
 parser = JsonOutputParser()
 
 def map_and_analyze(skills: list, target_domain: str) -> dict:

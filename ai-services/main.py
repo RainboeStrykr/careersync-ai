@@ -21,7 +21,7 @@ def home():
     return {"message": "CareerSync AI running 🚀"}
 
 @app.post("/analyze")
-async def analyze(data: Request):
+def analyze(data: Request):
 
     # 🧠 Step 1: Extract Skills
     skills = extract_skills(data.resume_text)
