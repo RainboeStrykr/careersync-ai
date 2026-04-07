@@ -27,7 +27,24 @@ async def analyze(data: Request):
     skills = extract_skills(data.resume_text)
 
     # 🔄 Step 2: Mapping + Gaps
-    mapping = map_and_analyze(skills, data.target_domain)
+    mapping_data = map_and_analyze(skills, data.target_domain)
+    
+    # Transform mapping data into format expected by frontend
+    mapped_skills_dict = {}
+    if isinstance(mapping_data, dict) and "mapped_skills" in mapping_data and isinstance(mapping_data["mapped_skills"], list):
+        for item in mapping_data["mapped_skills"]:
+            if isinstance(item, dict) and "source" in item and "target" in item:
+                mapped_skills_dict[item["source"]] = item["target"]
+            elif isinstance(item, str):
+                pass # skip
+                
+    gaps_list = []
+    if isinstance(mapping_data, dict) and "gaps" in mapping_data and isinstance(mapping_data["gaps"], list):
+        for item in mapping_data["gaps"]:
+            if isinstance(item, dict) and "skill" in item:
+                gaps_list.append(item["skill"])
+            elif isinstance(item, str):
+                gaps_list.append(item)
 
     # 📅 Step 3: Roadmap
     roadmap = generate_roadmap(data.timeline, data.target_domain)
@@ -36,11 +53,12 @@ async def analyze(data: Request):
     questions = generate_questions(data.target_domain)
 
     # 📈 Step 5: Confidence Score (basic)
-    confidence = "80%"
+    confidence = "80"
 
     return {
         "skills": skills,
-        "mapping": mapping,
+        "mapped_skills": mapped_skills_dict,
+        "gaps": gaps_list,
         "roadmap": roadmap,
         "questions": questions,
         "confidence_score": confidence

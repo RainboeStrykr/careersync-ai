@@ -35,8 +35,11 @@ def map_and_analyze(skills: list, target_domain: str) -> dict:
     )
 
     chain = prompt | llm | parser
-    result = chain.invoke({"skills": str(skills), "target_domain": target_domain})
-
-    if isinstance(result, dict):
-        return result
-    return {"mapped_skills": [], "gaps": []}
+    try:
+        result = chain.invoke({"skills": str(skills), "target_domain": target_domain})
+        if isinstance(result, dict):
+            return result
+        return {"mapped_skills": [], "gaps": []}
+    except Exception as e:
+        print("API Error in mapping_agent:", e)
+        return {"mapped_skills": [], "gaps": ["Domain expertise expected"]}

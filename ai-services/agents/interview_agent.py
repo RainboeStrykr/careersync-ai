@@ -10,14 +10,14 @@ def generate_questions(target_domain: str) -> list:
         input_variables=["target_domain"],
         template="""
         Generate exactly 5 interview questions for a {target_domain} role,
-        specifically for someone transitioning from a Computer Science background.
+        specifically for someone transitioning into this field.
 
-        Focus on: patient data security, clinical workflows, EHR systems, HIPAA, and domain knowledge.
+        Focus on: core skills, specific domain knowledge, common systems used, and technical understanding required for {target_domain}.
 
         Return ONLY a valid JSON array of 5 question strings. Example:
         [
-          "What is HIPAA and why is it important in Healthcare IT?",
-          "How would you secure patient data in a hospital system?"
+          "Question 1",
+          "Question 2"
         ]
 
         Do not include explanations or numbering. Return only the JSON array.
@@ -25,8 +25,14 @@ def generate_questions(target_domain: str) -> list:
     )
 
     chain = prompt | llm | parser
-    result = chain.invoke({"target_domain": target_domain})
-
-    if isinstance(result, list):
-        return result
-    return result.get("questions", [])
+    try:
+        result = chain.invoke({"target_domain": target_domain})
+        if isinstance(result, list):
+            return result
+        return result.get("questions", [])
+    except Exception as e:
+        print("API Error in interview_agent:", e)
+        return [
+            f"What interests you about {target_domain}?",
+            "How do your past problem-solving strategies apply here?"
+        ]

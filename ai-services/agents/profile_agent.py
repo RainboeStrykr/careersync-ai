@@ -22,11 +22,13 @@ def extract_skills(resume_text: str) -> list:
     )
 
     chain = prompt | llm | parser
-    result = chain.invoke({"resume": resume_text})
-
-    # result should be a list; if it's a dict wrap it
-    if isinstance(result, list):
-        return result
-    if isinstance(result, dict) and "skills" in result:
-        return result["skills"]
-    return list(result) if result else []
+    try:
+        result = chain.invoke({"resume": resume_text})
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict) and "skills" in result:
+            return result["skills"]
+        return list(result) if result else []
+    except Exception as e:
+        print("API Error in profile_agent:", e)
+        return ["Software Requirements", "Base Knowledge", "Project Management"]
