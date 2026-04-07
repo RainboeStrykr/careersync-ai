@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
+import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Roadmap from './pages/Roadmap';
@@ -12,7 +13,8 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Onboarding />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<AppLayout />}>
         <Route
           path="/pivot"
