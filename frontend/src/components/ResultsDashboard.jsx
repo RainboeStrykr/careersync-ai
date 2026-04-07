@@ -44,7 +44,7 @@ export default function ResultsDashboard({ results, onReset }) {
             <h3 className="section-title" style={{ marginBottom: '0.75rem' }}>Detected Base Skills</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               {skills && skills.map((s, i) => (
-                <span key={i} className="ai-chip" style={{ background: 'var(--surface-high)', color: 'var(--on-surface)' }}>{s}</span>
+                <span key={i} className="ai-chip">{s}</span>
               ))}
             </div>
           </div>
@@ -62,8 +62,8 @@ export default function ResultsDashboard({ results, onReset }) {
               {mapped_skills && Object.entries(mapped_skills).map(([original, mapped], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-high)', padding: '0.75rem 1rem', borderRadius: '8px' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--on-surface)' }}>{original}</span>
-                  <span className="material-icons" style={{ color: 'var(--outline)' }}>arrow_right_alt</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-container)' }}>{mapped}</span>
+                  <span className="material-icons" style={{ color: 'var(--outline)', fontSize: '1rem' }}>arrow_right_alt</span>
+                  <span className="job-match">{mapped}</span>
                 </div>
               ))}
             </div>
@@ -74,58 +74,67 @@ export default function ResultsDashboard({ results, onReset }) {
               <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', fontSize: '1.2rem' }}>warning_amber</span>
               Identified Gaps
             </h3>
-            <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--on-surface-variant)', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {gaps && gaps.map((gap, i) => (
-                <li key={i} style={{ marginBottom: '0.4rem' }}>{gap}</li>
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--on-surface-variant)', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <span className="material-icons" style={{ color: 'var(--error)', fontSize: '1rem', marginTop: '0.1rem' }}>error_outline</span>
+                  {gap}
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
 
-        <div className="card" style={{ padding: '0' }}>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(198,197,212,0.3)' }}>
-            <h3 className="section-title" style={{ margin: 0 }}>
-              <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', fontSize: '1.2rem', color: 'var(--primary-mid)' }}>route</span>
-              High-Speed Roadmap
+        {roadmap && Object.keys(roadmap).length > 0 && (
+          <div className="card" style={{ padding: '0' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(198,197,212,0.3)' }}>
+              <h3 className="section-title" style={{ margin: 0 }}>
+                <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', fontSize: '1.2rem', color: 'var(--primary-mid)' }}>route</span>
+                High-Speed Roadmap
+              </h3>
+            </div>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {Object.entries(roadmap).map(([dayLabel, tasks], index) => (
+                <div key={index} style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="phase-number" style={{ margin: 0, background: 'var(--primary-container)', color: 'white' }}>
+                      {index + 1}
+                    </div>
+                    {index < Object.keys(roadmap).length - 1 && <div style={{ flex: 1, width: '2px', background: 'var(--surface-highest)', margin: '6px 0' }}></div>}
+                  </div>
+                  <div style={{ flex: 1, paddingBottom: index < Object.keys(roadmap).length - 1 ? '1rem' : '0' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--on-surface)' }}>{dayLabel}</h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {Array.isArray(tasks) ? tasks.map((task, j) => (
+                        <span key={j} className="ai-chip" style={{ background: 'var(--surface)', color: 'var(--on-surface-variant)', border: '1px solid var(--outline-variant)' }}>
+                          {task}
+                        </span>
+                      )) : null}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {questions && questions.length > 0 && (
+          <div className="insight-panel">
+            <h3 className="section-title">
+              <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', fontSize: '1.2rem', color: 'var(--secondary)' }}>support_agent</span>
+              Expected Interview Questions
             </h3>
-          </div>
-          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {roadmap && Object.entries(roadmap).map(([dayLabel, tasks], index) => (
-              <div key={index} style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-container)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
-                    {index + 1}
-                  </div>
-                  {index < Object.keys(roadmap).length - 1 && <div style={{ flex: 1, width: '2px', background: 'var(--surface-high)', margin: '4px 0' }}></div>}
+            <p>Our transition engine identified these specific domain questions based on your gaps and mapped skills:</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {questions.map((q, i) => (
+                <div key={i} className="insight-highlight">
+                  <span className="material-icons">help_outline</span>
+                  {q}
                 </div>
-                <div style={{ flex: 1, paddingBottom: index < Object.keys(roadmap).length - 1 ? '1rem' : '0' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--on-surface)' }}>{dayLabel}</h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {tasks.map((task, j) => (
-                      <span key={j} style={{ background: 'var(--surface)', border: '1px solid var(--outline-variant)', borderRadius: '16px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', color: 'var(--on-surface-variant)' }}>
-                        {task}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="card">
-          <h3 className="section-title">
-            <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', fontSize: '1.2rem', color: 'var(--secondary)' }}>support_agent</span>
-            Expected Interview Questions
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {questions && questions.map((q, i) => (
-              <div key={i} style={{ background: 'var(--surface-high)', padding: '1rem', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--on-surface)', borderLeft: '4px solid var(--secondary)' }}>
-                "{q}"
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
       </div>
     </div>
