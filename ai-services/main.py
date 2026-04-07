@@ -1,20 +1,35 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from typing import List
 
 load_dotenv()
 
 from agents.profile_agent import extract_skills
 from agents.mapping_agent import map_and_analyze
-from agents.roadmap_agent import generate_roadmap
+from agents.roadmap_agent import generate_roadmap, generate_detailed_roadmap
 from agents.interview_agent import generate_questions
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class Request(BaseModel):
     resume_text: str
     timeline: str
     target_domain: str
+
+class RoadmapRequest(BaseModel):
+    timeline: str
+    target_domain: str
+    skills: List[str] = []
+    gaps: List[str] = []
 
 @app.get("/")
 def home():
@@ -63,3 +78,13 @@ def analyze(data: Request):
         "questions": questions,
         "confidence_score": confidence
     }
+
+@app.post("/roadmap/detailed")
+def detailed_roadmap(data: RoadmapRequest):
+    phases = generate_detailed_roadmap(
+        data.timeline,
+        data.target_domain,
+        data.skills,
+        data.gaps
+    )
+    return {"phases": phases}

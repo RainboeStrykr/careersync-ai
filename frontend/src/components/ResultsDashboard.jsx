@@ -25,7 +25,7 @@ export default function ResultsDashboard({ results, onReset }) {
   };
 
   return (
-    <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', paddingRight: '1rem', paddingBottom: '2rem' }}>
+    <div style={{ width: '100%', paddingBottom: '2rem' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
