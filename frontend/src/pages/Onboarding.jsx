@@ -1,164 +1,177 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { Link } from 'react-router-dom';
+
+const PROBLEMS = [
+  { icon: 'swap_horiz',    text: 'Career switching is hard — CSE → Healthcare? Railway? Finance?' },
+  { icon: 'psychology',    text: 'Information overload: "Where do I even start?"' },
+  { icon: 'schedule',      text: 'Time pressure: interviews in 2 days, no relevant prep materials.' },
+  { icon: 'device_unknown',text: 'Skill translation gap: "I have skills, but how do they map?"' },
+];
+
+const FEATURES = [
+  {
+    icon: 'account_tree',
+    title: 'Skill Mapping from Resume',
+    desc: 'Paste your resume and our AI instantly extracts your transferable skills and maps them to your target domain — no guesswork.',
+  },
+  {
+    icon: 'alt_route',
+    title: 'Realistic Roadmap Generation',
+    desc: 'Get a personalised, phase-by-phase learning roadmap built around your timeline — 2 days, 1 week, or 1 month.',
+  },
+  {
+    icon: 'record_voice_over',
+    title: 'Personalised Interview Prep',
+    desc: 'Domain-specific interview questions generated from your skill gaps so you walk in prepared, not panicked.',
+  },
+];
 
 export default function Onboarding() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-
-  const handleAnalyze = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1800);
-  };
-
   return (
-    <div className="onboarding-page">
-      <div className="onboarding-layout">
-        <aside className="onboarding-left">
-          <div className="brand-logo">
-            <span className="material-icons brand-icon">architecture</span>
-            <span className="brand-name">CareerSync AI</span>
+    <div className="onboarding-page" style={{ overflowY: 'auto', minHeight: '100vh' }}>
+
+      {/* ── Hero ── */}
+      <section style={{
+        background: 'linear-gradient(160deg, var(--primary) 0%, var(--primary-container) 60%, #2d1b8a 100%)',
+        color: '#fff',
+        padding: '5rem 2rem 6rem',
+        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* glow */}
+        <div style={{
+          position: 'absolute', top: '-80px', right: '-80px',
+          width: '400px', height: '400px',
+          background: 'rgba(104,250,221,0.1)',
+          borderRadius: '9999px', filter: 'blur(80px)', pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', maxWidth: '720px', margin: '0 auto' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+            background: 'rgba(104,250,221,0.15)', color: 'var(--secondary-container)',
+            borderRadius: '9999px', padding: '0.3rem 1rem', fontSize: '0.75rem',
+            fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+            marginBottom: '1.5rem' }}>
+            <span className="material-icons" style={{ fontSize: '0.9rem' }}>auto_awesome</span>
+            Pivot Mode — MVP
           </div>
 
-          <div className="hero-content">
-            <p className="hero-label">AI Career Platform</p>
-            <h1 className="hero-headline">Design your future career path with AI precision.</h1>
-            <p className="hero-subtext">
-              Welcome, Architect. Upload your credentials to begin your data-driven career journey. Our AI analyzes 50,000+ career trajectories to map your ideal route.
-            </p>
-          </div>
+          <h1 style={{
+            fontFamily: "'Manrope', sans-serif",
+            fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
+            fontWeight: 800, lineHeight: 1.1,
+            letterSpacing: '-0.04em', marginBottom: '1.25rem',
+          }}>
+            Switch Careers in Days,<br />Not Years.
+          </h1>
 
-          <div className="ai-live-panel">
-            <div className="ai-live-header">
-              <span className="material-icons">auto_awesome</span>
-              <span>Real-time Analysis</span>
-              <div className="pulse-dot"></div>
-            </div>
-            <p className="ai-awaiting">Awaiting data input...</p>
-            <p className="ai-hint">Upload your resume to unlock detailed AI-driven skill mapping and industry benchmarking.</p>
-          </div>
+          <p style={{ fontSize: '1.0625rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.7, marginBottom: '2.5rem' }}>
+            CareerSync AI's Pivot Mode maps your existing skills, builds a realistic transition roadmap,
+            and prepares you for domain-specific interviews — all in minutes.
+          </p>
 
-          <div className="social-proof">
-            <div className="avatars">
-              <div className="avatar" style={{background: '#7C4DFF'}}></div>
-              <div className="avatar" style={{background: '#00BFA5'}}></div>
-              <div className="avatar" style={{background: '#1A237E'}}></div>
-              <div className="avatar" style={{background: '#FF6D00'}}></div>
-            </div>
-            <span>Joined by <strong>12k+ students</strong> from top universities this week.</span>
-          </div>
-
-          <div className="feature-grid">
-            <div className="feature-card">
-              <span className="material-icons feature-icon">psychology</span>
-              <div>
-                <h4>Deep Parsing</h4>
-                <p>We extract hidden semantic skills that traditional recruiters often miss.</p>
-              </div>
-            </div>
-            <div className="feature-card">
-              <span className="material-icons feature-icon">insights</span>
-              <div>
-                <h4>Market Matching</h4>
-                <p>Real-time comparison against 2M+ active high-growth job postings.</p>
-              </div>
-            </div>
-            <div className="feature-card">
-              <span className="material-icons feature-icon">trending_up</span>
-              <div>
-                <h4>Success Mapping</h4>
-                <p>Predictive modeling of your career trajectory over the next 5 years.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="help-note">
-            <span className="material-icons">headset_mic</span>
-            Need help? Our career concierges are available 24/7.
-          </div>
-        </aside>
-
-        <main className="onboarding-right" style={{ flexDirection: 'column', gap: '1.5rem', justifyContent: 'center' }}>
-          
-          <Link to="/pivot" style={{ textDecoration: 'none', display: 'block', width: '100%', maxWidth: '480px' }}>
-            <div className="onboarding-card" style={{ background: 'linear-gradient(135deg, var(--tertiary), var(--primary-container))', padding: '2rem', boxShadow: '0 8px 32px rgba(0,6,102,0.25)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'transform 0.2s cubic-bezier(0.4,0,0.2,1)', marginBottom: 0 }}>
-              <div>
-                <div style={{ display:'flex', alignItems:'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <span className="material-icons" style={{ color: 'var(--secondary-container)', fontSize: '1.25rem' }}>rocket_launch</span>
-                  <h2 style={{ color: 'white', margin: 0, fontSize: '1.4rem' }}>Pivot Mode</h2>
-                  <span style={{ fontSize: '0.65rem', background: 'rgba(104,250,221,0.2)', color: 'var(--secondary-container)', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>MVP</span>
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: '0.85rem' }}>Switch careers in days, not years.</p>
-              </div>
-              <span className="material-icons" style={{ color: 'white', fontSize: '2rem', opacity: 0.9 }}>arrow_forward</span>
-            </div>
+          {/*
+          <Link to="/pivot" className="btn-primary" style={{ justifyContent: 'center', fontSize: '1rem', padding: '0.9rem 2.5rem' }}>
+            <span className="material-icons">rocket_launch</span>
+            Launch Pivot Mode
           </Link>
+          */}
+        </div>
+      </section>
 
-          <div className="onboarding-card">
-            <h2>Start Your Journey</h2>
-            <p className="card-subtext">Upload your resume or fill in your profile manually.</p>
+      {/* ── The Real Problem ── */}
+      <section style={{ background: 'var(--surface-low)', padding: '4rem 2rem' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-mid)',
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
+            The Real Problem
+          </p>
+          <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '1.75rem',
+            fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.03em', marginBottom: '2rem' }}>
+            Career switching is broken.
+          </h2>
 
-            <div className="upload-zone" id="uploadZone">
-              <span className="material-icons upload-icon">upload_file</span>
-              <p className="upload-title">Drag & drop your resume here</p>
-              <p className="upload-hint">PDF, DOCX, or TXT — up to 5MB</p>
-              <label className="btn-secondary" htmlFor="resumeInput">
-                <span className="material-icons">folder_open</span> Browse File
-              </label>
-              <input type="file" id="resumeInput" accept=".pdf,.doc,.docx,.txt" hidden />
-            </div>
-
-            <div className="divider"><span>or fill in manually</span></div>
-
-            <form className="profile-form" id="profileForm" onSubmit={handleAnalyze}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="firstName">First Name</label>
-                  <input type="text" id="firstName" placeholder="Alex" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="lastName">Last Name</label>
-                  <input type="text" id="lastName" placeholder="Chen" />
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {PROBLEMS.map(({ icon, text }) => (
+              <div key={text} style={{
+                background: 'var(--surface-lowest)', borderRadius: 'var(--radius-xl)',
+                padding: '1.25rem 1.5rem', boxShadow: 'var(--shadow-card)',
+                display: 'flex', alignItems: 'flex-start', gap: '0.875rem',
+              }}>
+                <span className="material-icons" style={{ color: 'var(--primary-mid)', fontSize: '1.25rem', marginTop: '0.1rem', flexShrink: 0 }}>{icon}</span>
+                <p style={{ fontSize: '0.9rem', color: 'var(--on-surface-variant)', lineHeight: 1.6, margin: 0 }}>{text}</p>
               </div>
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
-                <input type="email" id="email" placeholder="alex@university.edu" />
-              </div>
-              <div className="form-group">
-                <label htmlFor="currentRole">Current Role / Degree</label>
-                <input type="text" id="currentRole" placeholder="e.g. Graphic Design Student, Year 3" />
-              </div>
-              <div className="form-group">
-                <label htmlFor="targetRole">Target Career Path</label>
-                <select id="targetRole" defaultValue="">
-                  <option value="" disabled>Select your goal...</option>
-                  <option>UX / Product Design</option>
-                  <option>Software Engineering</option>
-                  <option>Data Science & AI</option>
-                  <option>Product Management</option>
-                  <option>Digital Marketing</option>
-                  <option>Finance & Investment</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="skills">Key Skills (comma separated)</label>
-                <input type="text" id="skills" placeholder="e.g. Figma, Python, SQL, Leadership" />
-              </div>
-
-              <button type="submit" className="btn-primary" id="analyzeBtn" disabled={loading} style={{ width: '100%', justifyContent:'center' }}>
-                {loading ? (
-                  <><span className="material-icons" style={{ animation: 'spin 1s linear infinite' }}>autorenew</span> Analyzing...</>
-                ) : (
-                  <><span className="material-icons">auto_awesome</span> Analyze My Profile</>
-                )}
-              </button>
-            </form>
+            ))}
           </div>
-        </main>
-      </div>
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section style={{ background: 'var(--surface)', padding: '4rem 2rem' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--secondary)',
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
+            Pivot Mode Features
+          </p>
+          <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '1.75rem',
+            fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.03em', marginBottom: '2rem' }}>
+            Everything you need to pivot fast.
+          </h2>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {FEATURES.map(({ icon, title, desc }, i) => (
+              <div key={title} style={{
+                background: 'var(--surface-lowest)', borderRadius: 'var(--radius-xl)',
+                padding: '1.5rem', boxShadow: 'var(--shadow-card)',
+                display: 'flex', alignItems: 'flex-start', gap: '1.25rem',
+              }}>
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: 'var(--radius-lg)',
+                  background: i === 0 ? 'rgba(76,86,175,0.12)' : i === 1 ? 'rgba(0,191,165,0.12)' : 'rgba(124,77,255,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <span className="material-icons" style={{
+                    color: i === 0 ? 'var(--primary-mid)' : i === 1 ? 'var(--teal-accent)' : 'var(--violet-accent)',
+                    fontSize: '1.4rem',
+                  }}>{icon}</span>
+                </div>
+                <div>
+                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '1rem',
+                    fontWeight: 700, color: 'var(--on-surface)', marginBottom: '0.35rem' }}>
+                    {i + 1}. {title}
+                  </h3>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--on-surface-variant)', lineHeight: 1.65, margin: 0 }}>{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section style={{
+        background: 'linear-gradient(135deg, var(--primary), var(--primary-container))',
+        padding: '4rem 2rem', textAlign: 'center',
+      }}>
+        <div style={{ maxWidth: '560px', margin: '0 auto' }}>
+          <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '2rem',
+            fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', marginBottom: '1rem' }}>
+            Ready to make your move?
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '1rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+            Paste your resume, pick your target domain, and get your personalised career pivot plan in minutes.
+          </p>
+          <Link to="/pivot" className="btn-primary" style={{
+            justifyContent: 'center', fontSize: '1rem', padding: '0.9rem 2.5rem',
+            background: 'rgba(255,255,255,0.15)', boxShadow: 'none',
+            border: '1px solid rgba(255,255,255,0.25)',
+          }}>
+            <span className="material-icons">rocket_launch</span>
+            Get Started — It's Free
+          </Link>
+        </div>
+      </section>
+
     </div>
   );
 }
