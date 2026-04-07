@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import ResultsDashboard from '../components/ResultsDashboard';
+import { useNavigate } from 'react-router-dom';
 
 export default function PivotMode({ savedResults, onResultsSaved }) {
+  const navigate = useNavigate();
   const [resumeText, setResumeText] = useState('');
   const [targetDomain, setTargetDomain] = useState('');
   const [timeline, setTimeline] = useState('');
@@ -25,6 +26,7 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
       if (!response.ok) throw new Error('API Failed');
       const data = await response.json();
       onResultsSaved({ ...data, timeline, target_domain: targetDomain });
+      navigate('/dashboard');
     } catch (err) {
       console.error('API Error', err);
       setError('API unavailable or error during processing.');
@@ -34,7 +36,20 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
   };
 
   if (savedResults) {
-    return <ResultsDashboard results={savedResults} onReset={() => onResultsSaved(null)} />;
+    return (
+      <div style={{ padding: '1rem 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <span className="material-icons" style={{ color: 'var(--teal-accent)' }}>check_circle</span>
+          <span style={{ fontWeight: 600, color: 'var(--on-surface)' }}>Analysis complete for <strong>{savedResults.target_domain}</strong></span>
+          <button className="btn-secondary" style={{ marginLeft: 'auto', padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => onResultsSaved(null)}>
+            New Pivot
+          </button>
+        </div>
+        <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.9rem' }}>
+          Your results are saved. View them on the <a href="/dashboard" style={{ color: 'var(--primary-mid)', fontWeight: 600 }}>Dashboard</a> or <a href="/roadmap" style={{ color: 'var(--primary-mid)', fontWeight: 600 }}>Roadmap</a> pages.
+        </p>
+      </div>
+    );
   }
 
   return (

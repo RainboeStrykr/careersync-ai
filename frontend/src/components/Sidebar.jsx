@@ -12,14 +12,14 @@ export default function Sidebar() {
         <NavLink to="/pivot" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <span className="material-icons">rocket_launch</span> Pivot Mode
         </NavLink>
+        <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <span className="material-icons">dashboard</span> Dashboard
+        </NavLink>
         <NavLink to="/roadmap" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <span className="material-icons">alt_route</span> Roadmaps
         </NavLink>
         <NavLink to="/interview" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <span className="material-icons">record_voice_over</span> Interview Prep
-        </NavLink>
-        <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <span className="material-icons">dashboard</span> Dashboard
         </NavLink>
         <button className="nav-link" style={{border:'none', background:'none', width:'100%', textAlign:'left', cursor:'pointer'}}>
           <span className="material-icons">psychology</span> Skill Labs

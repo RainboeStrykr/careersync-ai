@@ -10,6 +10,7 @@ from agents.profile_agent import extract_skills
 from agents.mapping_agent import map_and_analyze
 from agents.roadmap_agent import generate_roadmap, generate_detailed_roadmap
 from agents.interview_agent import generate_questions
+from agents.dashboard_agent import generate_dashboard_data
 
 app = FastAPI()
 
@@ -70,13 +71,17 @@ def analyze(data: Request):
     # 📈 Step 5: Confidence Score (basic)
     confidence = "80"
 
+    # 📊 Step 6: Dashboard data
+    dashboard = generate_dashboard_data(skills, mapped_skills_dict, gaps_list, data.target_domain)
+
     return {
         "skills": skills,
         "mapped_skills": mapped_skills_dict,
         "gaps": gaps_list,
         "roadmap": roadmap,
         "questions": questions,
-        "confidence_score": confidence
+        "confidence_score": confidence,
+        "dashboard": dashboard
     }
 
 @app.post("/roadmap/detailed")
