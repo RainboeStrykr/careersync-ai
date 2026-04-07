@@ -10,33 +10,6 @@ export default function PivotMode() {
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
 
-  const handleDemoMode = () => {
-    // Dummy Data Fallback
-    const demoData = {
-      skills: ["Problem Solving", "Project Management", "Data Analysis", "Python", "SQL"],
-      mapped_skills: {
-        "Data Analysis": "Patient Data Management",
-        "Python": "Medical Data Analysis",
-        "SQL": "EHR Querying"
-      },
-      gaps: ["HIPAA Compliance", "Clinical Workflows", "EHR Systems (Epic/Cerner)"],
-      roadmap: {
-        "Day 1": ["Healthcare IT Basics", "HIPAA Overview (2h)", "Medical Terminology Crash Course"],
-        "Day 2": ["EHR Systems deep-dive", "Mock Case Study: Patient Flow", "Data Security in Hospitals"]
-      },
-      questions: [
-        "How would you ensure patient data privacy when running data experiments?",
-        "Describe a time you optimized a workflow. How would you apply that to an ER setting?",
-        "What is your understanding of HL7 or FHIR standards?"
-      ],
-      confidence_score: 82
-    };
-
-    setTimeout(() => {
-      setResults(demoData);
-      setLoading(false);
-    }, 1500);
-  };
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -53,7 +26,7 @@ export default function PivotMode() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ resumeText })
+        body: JSON.stringify({ resumeText, targetDomain, timeline })
       });
 
       if (!response.ok) {
@@ -64,9 +37,9 @@ export default function PivotMode() {
       setResults(data);
       setLoading(false);
     } catch (err) {
-      console.warn("API Error, falling back to Demo Mode", err);
-      setError("API unavailable. Generating Demo Career Plan...");
-      handleDemoMode();
+      console.error("API Error", err);
+      setError("API unavailable or error during processing.");
+      setLoading(false);
     }
   };
 
