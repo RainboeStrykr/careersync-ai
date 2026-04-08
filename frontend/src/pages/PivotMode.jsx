@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PivotMode({ savedResults, onResultsSaved }) {
@@ -34,6 +34,97 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
       setLoading(false);
     }
   };
+
+  const STEPS = [
+    { icon: 'description',    label: 'Parsing your resume...' },
+    { icon: 'account_tree',   label: 'Mapping transferable skills...' },
+    { icon: 'alt_route',      label: 'Building your roadmap...' },
+    { icon: 'record_voice_over', label: 'Generating interview questions...' },
+    { icon: 'insights',       label: 'Calculating confidence score...' },
+  ];
+
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (!loading) { setStepIndex(0); return; }
+    const interval = setInterval(() => {
+      setStepIndex((prev) => (prev < STEPS.length - 1 ? prev + 1 : prev));
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  if (loading) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'linear-gradient(160deg, var(--primary) 0%, var(--primary-container) 60%, #2d1b8a 100%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: '2.5rem',
+      }}>
+        {/* Pulsing ring */}
+        <div style={{ position: 'relative', width: '100px', height: '100px' }}>
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            border: '2px solid rgba(104,250,221,0.3)',
+            animation: 'pivot-ping 1.4s ease-out infinite',
+          }} />
+          <div style={{
+            position: 'absolute', inset: '12px', borderRadius: '50%',
+            border: '2px solid rgba(104,250,221,0.5)',
+            animation: 'pivot-ping 1.4s ease-out 0.3s infinite',
+          }} />
+          <div style={{
+            position: 'absolute', inset: '24px', borderRadius: '50%',
+            background: 'rgba(104,250,221,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span className="material-icons" style={{ color: 'var(--secondary-container)', fontSize: '1.75rem' }}>
+              {STEPS[stepIndex].icon}
+            </span>
+          </div>
+        </div>
+
+        {/* Step label */}
+        <div style={{ textAlign: 'center' }}>
+          <p style={{
+            fontFamily: "'Manrope', sans-serif", fontWeight: 700,
+            fontSize: '1.25rem', color: '#fff', marginBottom: '0.5rem',
+            letterSpacing: '-0.02em',
+          }}>
+            Analyzing your career pivot...
+          </p>
+          <p style={{
+            fontSize: '0.9rem', color: 'rgba(104,250,221,0.85)',
+            fontWeight: 500, minHeight: '1.4em',
+            transition: 'opacity 0.3s',
+          }}>
+            {STEPS[stepIndex].label}
+          </p>
+        </div>
+
+        {/* Step dots */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {STEPS.map((_, i) => (
+            <div key={i} style={{
+              width: i === stepIndex ? '24px' : '8px',
+              height: '8px',
+              borderRadius: '9999px',
+              background: i <= stepIndex ? 'var(--secondary-container)' : 'rgba(255,255,255,0.2)',
+              transition: 'all 0.4s ease',
+            }} />
+          ))}
+        </div>
+
+        <style>{`
+          @keyframes pivot-ping {
+            0%   { transform: scale(1);   opacity: 0.8; }
+            80%  { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   if (savedResults) {
     return (
