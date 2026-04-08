@@ -59,7 +59,7 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
         <p>Switch careers in days, not years.</p>
       </div>
 
-      <div style={{ maxWidth: '640px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
         <div className="card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.25rem' }}>
             Launch Pivot Mode
@@ -131,7 +131,6 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
         </div>
 
         <div className="ai-live-panel" style={{
-          marginTop: '1.5rem',
           background: loading ? 'rgba(104,250,221,0.08)' : 'var(--surface-lowest)',
           border: '1px solid rgba(198,197,212,0.3)',
           borderRadius: 'var(--radius-xl)',
