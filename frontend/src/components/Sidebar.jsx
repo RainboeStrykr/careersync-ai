@@ -23,11 +23,11 @@ export default function Sidebar() {
         </NavLink>
       </nav>
       <div className="sidebar-footer">
-        <button className="nav-link" style={{border:'none', background:'none', width:'100%', textAlign:'left', cursor:'pointer'}}>
+        <NavLink to="/help" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <span className="material-icons">help</span> Help Center
-        </button>
+        </NavLink>
         <Link to="/" className="nav-link">
-          <span className="material-icons">logout</span> Sign Out
+          <span className="material-icons">logout</span> Exit
         </Link>
       </div>
     </aside>

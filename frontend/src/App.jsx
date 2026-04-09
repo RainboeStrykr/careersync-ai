@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Roadmap from './pages/Roadmap';
 import Interview from './pages/Interview';
 import PivotMode from './pages/PivotMode';
+import HelpCenter from './pages/HelpCenter';
 
 function App() {
   const [pivotResults, setPivotResults] = useState(null);
@@ -26,6 +27,7 @@ function App() {
           element={<Roadmap pivotResults={pivotResults} onResultsSaved={setPivotResults} />}
         />
         <Route path="/interview" element={<Interview pivotResults={pivotResults} />} />
+        <Route path="/help" element={<HelpCenter />} />
       </Route>
     </Routes>
   );
