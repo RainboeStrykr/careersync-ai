@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const TOTAL_QUESTIONS = 5;
+const FASTAPI_BASE_URL = 'http://127.0.0.1:8000';
+const START_TIMEOUT_MS = 30000;
+const ANSWER_TIMEOUT_MS = 120000;
+const REPORT_TIMEOUT_MS = 60000;
 
 function avgScore(evaluation) {
   if (!evaluation) return 0;
@@ -12,6 +16,17 @@ function avgScore(evaluation) {
       Number(evaluation.technical_accuracy || 0)) /
       4
   );
+}
+
+async function fetchWithTimeout(url, timeoutMs, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default function Interview({ pivotResults }) {
@@ -55,7 +70,7 @@ export default function Interview({ pivotResults }) {
     setLoadingStart(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:5000/interview/start', {
+      const res = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/start`, START_TIMEOUT_MS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_industry: pivotResults?.target_domain || '' }),
@@ -64,13 +79,20 @@ export default function Interview({ pivotResults }) {
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Failed to start interview');
       }
+      if (!data.question || typeof data.question !== 'string') {
+        throw new Error('Interview API did not return a valid question.');
+      }
       setHasStarted(true);
       setFinalReport(null);
       setCurrentQuestion(data.question);
       setProgress(data.question_number || 1);
       setMessages([{ type: 'question', text: data.question, number: data.question_number || 1 }]);
     } catch (err) {
-      setError(err.message || 'Could not start interview. Please run pivot analysis first.');
+      if (err.name === 'AbortError') {
+        setError('Start interview timed out. Check FastAPI server on port 8000 and Ollama.');
+      } else {
+        setError(err.message || 'Could not start interview. Please run pivot analysis first.');
+      }
     } finally {
       setLoadingStart(false);
     }
@@ -86,7 +108,7 @@ export default function Interview({ pivotResults }) {
     setMessages((prev) => [...prev, { type: 'answer', text: userAnswer, number: progress }]);
 
     try {
-      const res = await fetch('http://localhost:5000/interview/answer', {
+      const res = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/answer`, ANSWER_TIMEOUT_MS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answer: userAnswer }),
@@ -101,7 +123,7 @@ export default function Interview({ pivotResults }) {
       if (data.interview_complete || !data.next_question) {
         setCurrentQuestion('');
         setIsReportLoading(true);
-        const reportRes = await fetch('http://localhost:5000/interview/report');
+        const reportRes = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/report`, REPORT_TIMEOUT_MS);
         const reportData = await reportRes.json();
         if (!reportRes.ok || reportData.error) {
           throw new Error(reportData.error || 'Failed to fetch final report');
@@ -121,7 +143,11 @@ export default function Interview({ pivotResults }) {
         ]);
       }
     } catch (err) {
-      setError(err.message || 'Interview request failed');
+      if (err.name === 'AbortError') {
+        setError('Interview request timed out. Verify FastAPI and Ollama are running.');
+      } else {
+        setError(err.message || 'Interview request failed');
+      }
     } finally {
       setSubmitting(false);
       setIsReportLoading(false);

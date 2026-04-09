@@ -7,7 +7,8 @@ from langchain_core.output_parsers import JsonOutputParser
 llm_llama = ChatOllama(model='llama3', format='json')
 
 # Qwen for interview simulation
-llm = ChatOllama(model='qwen3.5:4b', format='json')
+# Timeout keeps request latency bounded; fallback logic handles failures.
+llm = ChatOllama(model='qwen3.5:4b', format='json', timeout=25)
 parser = JsonOutputParser()
 
 DIFFICULTY_MAP = {0: 'Easy', 1: 'Easy-Medium', 2: 'Medium', 3: 'Medium-Hard', 4: 'Hard'}
