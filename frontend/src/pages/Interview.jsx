@@ -153,7 +153,7 @@ export default function Interview({ pivotResults }) {
             <p>Tailored for {targetIndustry}{hasStarted ? ` · Question ${Math.min(progress, TOTAL_QUESTIONS)}/${TOTAL_QUESTIONS}` : ''}</p>
           </div>
           <span className="ai-chip" style={{ fontSize: '0.8rem' }}>
-            <span className="material-icons">auto_awesome</span> Qwen3.5:4b
+            <span className="material-icons">auto_awesome</span> Llama3
           </span>
         </div>
       </div>

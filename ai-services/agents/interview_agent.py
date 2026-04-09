@@ -3,7 +3,6 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
-# Original llama3 instance kept for legacy generate_questions
 llm = ChatOllama(model='llama3', format='json')
 parser = JsonOutputParser()
 
@@ -108,13 +107,29 @@ def _fallback_evaluation(question: str, answer: str) -> dict:
 
 
 def generate_interview_question_set(target_industry: str, total_questions: int = 5) -> list:
-    # Keep start flow instant and deterministic to avoid UI timeouts.
-    return [_fallback_question(target_industry, idx) for idx in range(max(1, total_questions))]
+    questions = []
+    topics_covered = []
+    for idx in range(max(1, total_questions)):
+        difficulty = DIFFICULTY_MAP.get(idx, "Medium")
+        topics_str = ", ".join(topics_covered) if topics_covered else "none"
+        try:
+            q = generate_interview_question(target_industry, difficulty, topics_covered)
+        except Exception:
+            q = _fallback_question(target_industry, idx)
+        questions.append(q)
+        topics_covered.append(" ".join(q.split()[:6]))
+    return questions
 
 
 def evaluate_interview_batch(target_industry: str, questions: list, answers: list) -> list:
-    # Fast, local scoring to ensure finish step reliably returns.
-    return [_fallback_evaluation(question, answer) for question, answer in zip(questions, answers)]
+    results = []
+    for question, answer in zip(questions, answers):
+        try:
+            evaluation = evaluate_answer(target_industry, question, answer)
+        except Exception:
+            evaluation = _fallback_evaluation(question, answer)
+        results.append(evaluation)
+    return results
 
 
 def generate_batch_report(target_industry: str, questions: list, answers: list, evaluations: list) -> dict:
@@ -126,37 +141,33 @@ def generate_batch_report(target_industry: str, questions: list, answers: list, 
             "improvement_roadmap": ["Practice structured responses", "Use concrete examples", "Add measurable outcomes"],
             "topics_to_study": [f"{target_industry} fundamentals", "Industry workflows", "Common interview questions"],
         }
-
-    averages = [
-        (e.get("relevance", 5) + e.get("clarity", 5) + e.get("depth", 5) + e.get("technical_accuracy", 5)) / 4
-        for e in evaluations
-    ]
-    overall_score = int(round((sum(averages) / len(averages)) * 10))
-
-    strengths = []
-    weaknesses = []
-    for e in evaluations:
-        strengths.extend(e.get("strengths", []))
-        weaknesses.extend(e.get("weaknesses", []))
-
-    top_strengths = list(dict.fromkeys(strengths))[:3] or ["Stayed engaged throughout the interview."]
-    key_weaknesses = list(dict.fromkeys(weaknesses))[:3] or ["Increase specificity in answers."]
-
-    return {
-        "overall_score": overall_score,
-        "top_strengths": top_strengths,
-        "key_weaknesses": key_weaknesses,
-        "improvement_roadmap": [
-            "Use STAR or a similar structure for every answer.",
-            f"Link your past experience directly to {target_industry}.",
-            "Quantify outcomes where possible.",
-        ],
-        "topics_to_study": [
-            f"{target_industry} role expectations",
-            "Scenario-based interview preparation",
-            "Core tools and terminology",
-        ],
-    }
+    try:
+        return generate_final_report(target_industry, evaluations, questions, answers)
+    except Exception:
+        averages = [
+            (e.get("relevance", 5) + e.get("clarity", 5) + e.get("depth", 5) + e.get("technical_accuracy", 5)) / 4
+            for e in evaluations
+        ]
+        overall_score = int(round((sum(averages) / len(averages)) * 10))
+        strengths, weaknesses = [], []
+        for e in evaluations:
+            strengths.extend(e.get("strengths", []))
+            weaknesses.extend(e.get("weaknesses", []))
+        return {
+            "overall_score": overall_score,
+            "top_strengths": list(dict.fromkeys(strengths))[:3] or ["Stayed engaged throughout the interview."],
+            "key_weaknesses": list(dict.fromkeys(weaknesses))[:3] or ["Increase specificity in answers."],
+            "improvement_roadmap": [
+                "Use STAR or a similar structure for every answer.",
+                f"Link your past experience directly to {target_industry}.",
+                "Quantify outcomes where possible.",
+            ],
+            "topics_to_study": [
+                f"{target_industry} role expectations",
+                "Scenario-based interview preparation",
+                "Core tools and terminology",
+            ],
+        }
 
 
 def build_question_prompt(target_industry: str, difficulty: str, topics_covered: str) -> PromptTemplate:
