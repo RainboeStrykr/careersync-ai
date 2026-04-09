@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const TOTAL_QUESTIONS = 5;
 const FASTAPI_BASE_URL = 'http://127.0.0.1:8000';
 const START_TIMEOUT_MS = 30000;
-const ANSWER_TIMEOUT_MS = 120000;
+const SUBMIT_TIMEOUT_MS = 120000;
 const REPORT_TIMEOUT_MS = 60000;
 
 function avgScore(evaluation) {
@@ -31,6 +31,9 @@ async function fetchWithTimeout(url, timeoutMs, options = {}) {
 
 export default function Interview({ pivotResults }) {
   const navigate = useNavigate();
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState(Array(TOTAL_QUESTIONS).fill(''));
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [messages, setMessages] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [answer, setAnswer] = useState('');
@@ -41,6 +44,7 @@ export default function Interview({ pivotResults }) {
   const [finalReport, setFinalReport] = useState(null);
   const [isReportLoading, setIsReportLoading] = useState(false);
   const [error, setError] = useState('');
+  const [answerValidation, setAnswerValidation] = useState('');
   const [selectedEval, setSelectedEval] = useState(null);
 
   const targetIndustry = pivotResults?.target_domain || 'your selected industry';
@@ -57,6 +61,9 @@ export default function Interview({ pivotResults }) {
   useEffect(() => {
     // Reset interview UI when pivot context changes.
     setMessages([]);
+    setQuestions([]);
+    setAnswers(Array(TOTAL_QUESTIONS).fill(''));
+    setCurrentQuestionIndex(0);
     setCurrentQuestion('');
     setAnswer('');
     setProgress(1);
@@ -64,6 +71,7 @@ export default function Interview({ pivotResults }) {
     setFinalReport(null);
     setIsReportLoading(false);
     setError('');
+    setAnswerValidation('');
   }, [pivotResults?.target_domain]);
 
   const startInterview = async () => {
@@ -82,11 +90,21 @@ export default function Interview({ pivotResults }) {
       if (!data.question || typeof data.question !== 'string') {
         throw new Error('Interview API did not return a valid question.');
       }
+      const incomingQuestions = Array.isArray(data.questions) && data.questions.length
+        ? data.questions.slice(0, TOTAL_QUESTIONS)
+        : [data.question];
+      while (incomingQuestions.length < TOTAL_QUESTIONS) {
+        incomingQuestions.push(`Question ${incomingQuestions.length + 1}`);
+      }
+
       setHasStarted(true);
       setFinalReport(null);
-      setCurrentQuestion(data.question);
-      setProgress(data.question_number || 1);
-      setMessages([{ type: 'question', text: data.question, number: data.question_number || 1 }]);
+      setQuestions(incomingQuestions);
+      setCurrentQuestionIndex(0);
+      setCurrentQuestion(incomingQuestions[0]);
+      setProgress(1);
+      setAnswers(Array(TOTAL_QUESTIONS).fill(''));
+      setMessages([{ type: 'question', text: incomingQuestions[0], number: 1 }]);
     } catch (err) {
       if (err.name === 'AbortError') {
         setError('Start interview timed out. Check FastAPI server on port 8000 and Ollama.');
@@ -98,53 +116,68 @@ export default function Interview({ pivotResults }) {
     }
   };
 
-  const submitAnswer = async () => {
-    if (!answer.trim() || submitting || !currentQuestion) return;
+  const goToNextQuestionOrFinish = async () => {
+    if (submitting || isReportLoading || !currentQuestion) return;
+    if (!answer.trim()) {
+      setAnswerValidation('Please answer this question before moving to the next one.');
+      return;
+    }
+    setAnswerValidation('');
     setSubmitting(true);
     setError('');
 
     const userAnswer = answer.trim();
-    setAnswer('');
-    setMessages((prev) => [...prev, { type: 'answer', text: userAnswer, number: progress }]);
+    const updatedAnswers = [...answers];
+    updatedAnswers[currentQuestionIndex] = userAnswer;
+    setAnswers(updatedAnswers);
+    setMessages((prev) => [...prev, { type: 'answer', text: userAnswer, number: currentQuestionIndex + 1 }]);
 
     try {
-      const res = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/answer`, ANSWER_TIMEOUT_MS, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answer: userAnswer }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to submit answer');
-      }
-
-      setMessages((prev) => [...prev, { type: 'evaluation', evaluation: data.evaluation, number: progress }]);
-
-      if (data.interview_complete || !data.next_question) {
+      const isLastQuestion = currentQuestionIndex >= TOTAL_QUESTIONS - 1;
+      if (isLastQuestion) {
         setCurrentQuestion('');
         setIsReportLoading(true);
-        const reportRes = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/report`, REPORT_TIMEOUT_MS);
-        const reportData = await reportRes.json();
-        if (!reportRes.ok || reportData.error) {
-          throw new Error(reportData.error || 'Failed to fetch final report');
+        const submitRes = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/submit`, SUBMIT_TIMEOUT_MS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: updatedAnswers }),
+        });
+        const submitData = await submitRes.json();
+        if (!submitRes.ok || submitData.error) {
+          throw new Error(submitData.error || 'Failed to evaluate interview');
         }
-        setFinalReport(reportData);
+
+        const evaluated = submitData.evaluations || [];
+        const transcript = [];
+        for (let i = 0; i < TOTAL_QUESTIONS; i += 1) {
+          transcript.push({ type: 'question', text: questions[i], number: i + 1 });
+          transcript.push({ type: 'answer', text: updatedAnswers[i], number: i + 1 });
+          if (evaluated[i]) {
+            transcript.push({ type: 'evaluation', evaluation: evaluated[i], number: i + 1 });
+          }
+        }
+        setMessages(transcript);
+        setFinalReport(submitData.report || null);
+        setProgress(TOTAL_QUESTIONS);
       } else {
-        setCurrentQuestion(data.next_question);
-        setProgress(data.next_question_number || progress + 1);
+        const nextIndex = currentQuestionIndex + 1;
+        const nextQuestion = questions[nextIndex];
+        setCurrentQuestionIndex(nextIndex);
+        setCurrentQuestion(nextQuestion);
+        setAnswer(updatedAnswers[nextIndex] || '');
+        setProgress(nextIndex + 1);
         setMessages((prev) => [
           ...prev,
           {
             type: 'question',
-            text: data.next_question,
-            number: data.next_question_number || progress + 1,
-            difficulty: data.next_difficulty,
+            text: nextQuestion,
+            number: nextIndex + 1,
           },
         ]);
       }
     } catch (err) {
       if (err.name === 'AbortError') {
-        setError('Interview request timed out. Verify FastAPI and Ollama are running.');
+        setError('Interview request timed out. Verify FastAPI is running.');
       } else {
         setError(err.message || 'Interview request failed');
       }
@@ -241,7 +274,7 @@ export default function Interview({ pivotResults }) {
 
           {!finalReport && (
             <div className="card">
-              <h3 className="section-title" style={{ marginBottom: '0.5rem' }}>Submit Your Answer</h3>
+              <h3 className="section-title" style={{ marginBottom: '0.5rem' }}>Your Answer</h3>
               <textarea
                 rows={6}
                 className="form-group"
@@ -249,8 +282,11 @@ export default function Interview({ pivotResults }) {
                 placeholder="Type your response..."
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                disabled={submitting || loadingStart || !currentQuestion || !hasStarted}
+                disabled={submitting || loadingStart || isReportLoading || !currentQuestion || !hasStarted}
               />
+              {answerValidation && (
+                <p style={{ color: 'var(--error)', fontSize: '0.8rem', marginBottom: '0.7rem' }}>{answerValidation}</p>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <span style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>
                   {!hasStarted
@@ -261,11 +297,15 @@ export default function Interview({ pivotResults }) {
                 </span>
                 <button
                   className="btn-primary"
-                  onClick={submitAnswer}
-                  disabled={submitting || !answer.trim() || !currentQuestion || !hasStarted}
+                  onClick={goToNextQuestionOrFinish}
+                  disabled={submitting || isReportLoading || !currentQuestion || !hasStarted}
                 >
-                  <span className="material-icons">send</span>
-                  {submitting ? 'Evaluating...' : 'Submit Answer'}
+                  <span className="material-icons">arrow_forward</span>
+                  {submitting
+                    ? 'Evaluating...'
+                    : progress >= TOTAL_QUESTIONS
+                      ? 'Finish Interview'
+                      : 'Next Question'}
                 </button>
               </div>
             </div>
@@ -300,8 +340,14 @@ export default function Interview({ pivotResults }) {
       </div>
 
       {isReportLoading && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <p>Generating final performance report...</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="card" style={{ maxWidth: '520px', width: '100%', textAlign: 'center' }}>
+            <div style={{ width: '62px', height: '62px', margin: '0 auto 1rem', borderRadius: '9999px', border: '4px solid rgba(76,86,175,0.2)', borderTopColor: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
+            <h3 className="section-title" style={{ marginBottom: '0.4rem' }}>Generating Your Interview Results</h3>
+            <p style={{ color: 'var(--on-surface-variant)' }}>
+              Analyzing all answers and building your detailed feedback report...
+            </p>
+          </div>
         </div>
       )}
 
@@ -337,6 +383,13 @@ export default function Interview({ pivotResults }) {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   );
 }

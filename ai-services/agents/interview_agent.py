@@ -4,11 +4,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
 # Original llama3 instance kept for legacy generate_questions
-llm_llama = ChatOllama(model='llama3', format='json')
-
-# Qwen for interview simulation
-# Timeout keeps request latency bounded; fallback logic handles failures.
-llm = ChatOllama(model='qwen3.5:4b', format='json', timeout=25)
+llm = ChatOllama(model='llama3', format='json')
 parser = JsonOutputParser()
 
 DIFFICULTY_MAP = {0: 'Easy', 1: 'Easy-Medium', 2: 'Medium', 3: 'Medium-Hard', 4: 'Hard'}
@@ -38,6 +34,129 @@ def _safe_json_text(value):
         except Exception:
             return {}
     return {}
+
+
+def _fallback_question(target_industry: str, index: int) -> str:
+    prompts = [
+        f"Tell me why you are interested in transitioning into {target_industry}, and which of your past experiences best prepare you for it.",
+        f"Describe one real-world {target_industry} problem you might face in an entry-level role and how you would approach it.",
+        f"What core tools, concepts, or workflows are most important in {target_industry}, and how would you ramp up quickly?",
+        f"Give a structured example of a time you handled ambiguity, and map that experience to a {target_industry} context.",
+        f"If hired tomorrow into a {target_industry} role, what would your 30-60-90 day plan look like?",
+    ]
+    idx = max(0, min(index, len(prompts) - 1))
+    return prompts[idx]
+
+
+def _fallback_evaluation(question: str, answer: str) -> dict:
+    text = (answer or "").strip()
+    word_count = len(text.split())
+    has_structure = any(marker in text.lower() for marker in ["first", "second", "finally", "because", "for example"])
+    has_example = any(marker in text.lower() for marker in ["example", "experience", "project", "worked", "built"])
+
+    depth = 3
+    if word_count >= 120:
+        depth = 8
+    elif word_count >= 80:
+        depth = 7
+    elif word_count >= 45:
+        depth = 6
+    elif word_count >= 25:
+        depth = 5
+    elif word_count >= 12:
+        depth = 4
+
+    clarity = 5 + (1 if has_structure else 0)
+    relevance = 6 if word_count >= 20 else 4
+    technical = 5 + (1 if has_example else 0)
+
+    strengths = []
+    weaknesses = []
+    if word_count >= 25:
+        strengths.append("You provided enough context to evaluate your thinking.")
+    if has_example:
+        strengths.append("You referenced practical experience, which improves credibility.")
+    if has_structure:
+        strengths.append("Your response shows some logical structure.")
+
+    if word_count < 25:
+        weaknesses.append("Your answer is short; add more detail and outcomes.")
+    if not has_example:
+        weaknesses.append("Include a concrete example to make your answer stronger.")
+    if not has_structure:
+        weaknesses.append("Use a clearer structure (context, action, result).")
+
+    if not strengths:
+        strengths = ["You attempted the question directly."]
+    if not weaknesses:
+        weaknesses = ["Add measurable impact to make the answer more compelling."]
+
+    improved_answer = (
+        f"For this question ({question}), start with brief context, describe your action steps, "
+        f"and end with measurable outcomes and what you learned."
+    )
+
+    return {
+        "relevance": _clamp_score(relevance, 5),
+        "clarity": _clamp_score(clarity, 5),
+        "depth": _clamp_score(depth, 5),
+        "technical_accuracy": _clamp_score(technical, 5),
+        "strengths": strengths[:2],
+        "weaknesses": weaknesses[:2],
+        "improved_answer": improved_answer,
+    }
+
+
+def generate_interview_question_set(target_industry: str, total_questions: int = 5) -> list:
+    # Keep start flow instant and deterministic to avoid UI timeouts.
+    return [_fallback_question(target_industry, idx) for idx in range(max(1, total_questions))]
+
+
+def evaluate_interview_batch(target_industry: str, questions: list, answers: list) -> list:
+    # Fast, local scoring to ensure finish step reliably returns.
+    return [_fallback_evaluation(question, answer) for question, answer in zip(questions, answers)]
+
+
+def generate_batch_report(target_industry: str, questions: list, answers: list, evaluations: list) -> dict:
+    if not evaluations:
+        return {
+            "overall_score": 50,
+            "top_strengths": ["Completed the interview flow"],
+            "key_weaknesses": ["Need more depth in answers"],
+            "improvement_roadmap": ["Practice structured responses", "Use concrete examples", "Add measurable outcomes"],
+            "topics_to_study": [f"{target_industry} fundamentals", "Industry workflows", "Common interview questions"],
+        }
+
+    averages = [
+        (e.get("relevance", 5) + e.get("clarity", 5) + e.get("depth", 5) + e.get("technical_accuracy", 5)) / 4
+        for e in evaluations
+    ]
+    overall_score = int(round((sum(averages) / len(averages)) * 10))
+
+    strengths = []
+    weaknesses = []
+    for e in evaluations:
+        strengths.extend(e.get("strengths", []))
+        weaknesses.extend(e.get("weaknesses", []))
+
+    top_strengths = list(dict.fromkeys(strengths))[:3] or ["Stayed engaged throughout the interview."]
+    key_weaknesses = list(dict.fromkeys(weaknesses))[:3] or ["Increase specificity in answers."]
+
+    return {
+        "overall_score": overall_score,
+        "top_strengths": top_strengths,
+        "key_weaknesses": key_weaknesses,
+        "improvement_roadmap": [
+            "Use STAR or a similar structure for every answer.",
+            f"Link your past experience directly to {target_industry}.",
+            "Quantify outcomes where possible.",
+        ],
+        "topics_to_study": [
+            f"{target_industry} role expectations",
+            "Scenario-based interview preparation",
+            "Core tools and terminology",
+        ],
+    }
 
 
 def build_question_prompt(target_industry: str, difficulty: str, topics_covered: str) -> PromptTemplate:
