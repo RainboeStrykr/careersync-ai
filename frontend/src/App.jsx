@@ -21,7 +21,10 @@ function App() {
           element={<PivotMode savedResults={pivotResults} onResultsSaved={setPivotResults} />}
         />
         <Route path="/dashboard" element={<Dashboard pivotResults={pivotResults} />} />
-        <Route path="/roadmap" element={<Roadmap pivotResults={pivotResults} />} />
+        <Route
+          path="/roadmap"
+          element={<Roadmap pivotResults={pivotResults} onResultsSaved={setPivotResults} />}
+        />
         <Route path="/interview" element={<Interview pivotResults={pivotResults} />} />
       </Route>
     </Routes>

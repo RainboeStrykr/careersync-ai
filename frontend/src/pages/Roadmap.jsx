@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
-export default function Roadmap({ pivotResults }) {
+export default function Roadmap({ pivotResults, onResultsSaved }) {
   const [phases, setPhases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -10,6 +10,15 @@ export default function Roadmap({ pivotResults }) {
 
   const fetchDetailed = useCallback(async () => {
     if (!pivotResults) return;
+
+    // Reuse cached detailed roadmap to avoid regenerating on page revisit.
+    if (Array.isArray(pivotResults.detailed_roadmap) && pivotResults.detailed_roadmap.length > 0) {
+      setPhases(pivotResults.detailed_roadmap);
+      setFetchError(false);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setFetchError(false);
     try {
@@ -28,6 +37,9 @@ export default function Roadmap({ pivotResults }) {
       const p = data.phases || [];
       if (p.length === 0) throw new Error('Empty phases');
       setPhases(p);
+      if (typeof onResultsSaved === 'function') {
+        onResultsSaved({ ...pivotResults, detailed_roadmap: p });
+      }
     } catch (e) {
       console.error(e);
       setFetchError(true);
@@ -35,7 +47,7 @@ export default function Roadmap({ pivotResults }) {
     } finally {
       setLoading(false);
     }
-  }, [pivotResults]);
+  }, [pivotResults, onResultsSaved]);
 
   useEffect(() => {
     setDonePhases([]);
