@@ -185,17 +185,23 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
                 <select value={targetDomain} onChange={(e) => setTargetDomain(e.target.value)}>
                   <option value="" disabled>Select industry...</option>
                   <option value="Healthcare IT">Healthcare IT</option>
-                  <option value="Railway">Railway</option>
                   <option value="Finance">Finance</option>
+                  <option value="Railway">Railway</option>
+                  <option value="Management">Management</option>
+                  <option value="Product Management">Product Management</option>
+                  <option value="Consulting">Consulting</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Legal Tech">Legal Tech</option>
+                  <option value="EdTech">EdTech</option>
                 </select>
               </div>
               <div className="form-group">
                 <label>Timeline</label>
                 <select value={timeline} onChange={(e) => setTimeline(e.target.value)}>
                   <option value="" disabled>Select duration...</option>
-                  <option value="2 Days">2 Days</option>
-                  <option value="1 Week">1 Week</option>
-                  <option value="1 Month">1 Month</option>
+                  <option value="15 Days">15 Days</option>
+                  <option value="30 Days">30 Days</option>
+                  <option value="60 Days">60 Days</option>
                 </select>
               </div>
             </div>
