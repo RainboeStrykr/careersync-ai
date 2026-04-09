@@ -41,6 +41,37 @@ app.post("/roadmap/detailed", async (req, res) => {
     }
 });
 
+// 🎤 INTERVIEW ROUTES
+app.post("/interview/start", async (req, res) => {
+    try {
+        const response = await axios.post("http://127.0.0.1:8000/interview/start", req.body);
+        res.json(response.data);
+    } catch (error) {
+        console.error("Interview Start Error:", error.message);
+        res.status(500).json({ error: "Failed to start interview", detail: error.message });
+    }
+});
+
+app.post("/interview/answer", async (req, res) => {
+    try {
+        const response = await axios.post("http://127.0.0.1:8000/interview/answer", req.body);
+        res.json(response.data);
+    } catch (error) {
+        console.error("Interview Answer Error:", error.message);
+        res.status(500).json({ error: "Failed to submit answer", detail: error.message });
+    }
+});
+
+app.get("/interview/report", async (req, res) => {
+    try {
+        const response = await axios.get("http://127.0.0.1:8000/interview/report");
+        res.json(response.data);
+    } catch (error) {
+        console.error("Interview Report Error:", error.message);
+        res.status(500).json({ error: "Failed to get report", detail: error.message });
+    }
+});
+
 app.listen(5000, () => {
     console.log("Backend running on http://localhost:5000");
 });

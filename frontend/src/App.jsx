@@ -22,7 +22,7 @@ function App() {
         />
         <Route path="/dashboard" element={<Dashboard pivotResults={pivotResults} />} />
         <Route path="/roadmap" element={<Roadmap pivotResults={pivotResults} />} />
-        <Route path="/interview" element={<Interview />} />
+        <Route path="/interview" element={<Interview pivotResults={pivotResults} />} />
       </Route>
     </Routes>
   );
