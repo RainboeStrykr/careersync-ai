@@ -20,6 +20,7 @@ export default function Interview({ pivotResults }) {
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [progress, setProgress] = useState(1);
+  const [hasStarted, setHasStarted] = useState(false);
   const [loadingStart, setLoadingStart] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [finalReport, setFinalReport] = useState(null);
@@ -39,30 +40,41 @@ export default function Interview({ pivotResults }) {
   }, [messages]);
 
   useEffect(() => {
-    const startInterview = async () => {
-      setLoadingStart(true);
-      setError('');
-      try {
-        const res = await fetch('http://localhost:5000/interview/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          throw new Error(data.error || 'Failed to start interview');
-        }
-        setCurrentQuestion(data.question);
-        setProgress(data.question_number || 1);
-        setMessages([{ type: 'question', text: data.question, number: data.question_number || 1 }]);
-      } catch (err) {
-        setError(err.message || 'Could not start interview. Please run pivot analysis first.');
-      } finally {
-        setLoadingStart(false);
+    // Reset interview UI when pivot context changes.
+    setMessages([]);
+    setCurrentQuestion('');
+    setAnswer('');
+    setProgress(1);
+    setHasStarted(false);
+    setFinalReport(null);
+    setIsReportLoading(false);
+    setError('');
+  }, [pivotResults?.target_domain]);
+
+  const startInterview = async () => {
+    setLoadingStart(true);
+    setError('');
+    try {
+      const res = await fetch('http://localhost:5000/interview/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_industry: pivotResults?.target_domain || '' }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to start interview');
       }
-    };
-    startInterview();
-  }, []);
+      setHasStarted(true);
+      setFinalReport(null);
+      setCurrentQuestion(data.question);
+      setProgress(data.question_number || 1);
+      setMessages([{ type: 'question', text: data.question, number: data.question_number || 1 }]);
+    } catch (err) {
+      setError(err.message || 'Could not start interview. Please run pivot analysis first.');
+    } finally {
+      setLoadingStart(false);
+    }
+  };
 
   const submitAnswer = async () => {
     if (!answer.trim() || submitting || !currentQuestion) return;
@@ -139,10 +151,30 @@ export default function Interview({ pivotResults }) {
       <div className="interview-layout">
         <div className="interview-main">
           <div className="card" style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div>
+                <h3 className="section-title" style={{ marginBottom: '0.3rem' }}>Interview Session</h3>
+                <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>
+                  Click start to begin your 5-question interview.
+                </p>
+              </div>
+              <button className="btn-primary" onClick={startInterview} disabled={loadingStart || submitting}>
+                <span className="material-icons">play_arrow</span>
+                {loadingStart ? 'Starting...' : 'Start Interview'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: '1rem' }}>
             <h3 className="section-title" style={{ marginBottom: '0.6rem' }}>Interview Chat</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.2rem' }}>
               {loadingStart && <p style={{ color: 'var(--on-surface-variant)' }}>Starting interview...</p>}
-              {!loadingStart && messages.length === 0 && <p style={{ color: 'var(--on-surface-variant)' }}>No messages yet.</p>}
+              {!loadingStart && !hasStarted && (
+                <p style={{ color: 'var(--on-surface-variant)' }}>Interview has not started yet.</p>
+              )}
+              {!loadingStart && hasStarted && messages.length === 0 && (
+                <p style={{ color: 'var(--on-surface-variant)' }}>No messages yet.</p>
+              )}
 
               {messages.map((msg, i) => {
                 if (msg.type === 'question') {
@@ -191,13 +223,21 @@ export default function Interview({ pivotResults }) {
                 placeholder="Type your response..."
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                disabled={submitting || loadingStart || !currentQuestion}
+                disabled={submitting || loadingStart || !currentQuestion || !hasStarted}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <span style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>
-                  {currentQuestion ? `Answering Question ${Math.min(progress, TOTAL_QUESTIONS)}` : 'Interview complete'}
+                  {!hasStarted
+                    ? 'Click "Start Interview" to begin.'
+                    : currentQuestion
+                      ? `Answering Question ${Math.min(progress, TOTAL_QUESTIONS)}`
+                      : 'Interview complete'}
                 </span>
-                <button className="btn-primary" onClick={submitAnswer} disabled={submitting || !answer.trim() || !currentQuestion}>
+                <button
+                  className="btn-primary"
+                  onClick={submitAnswer}
+                  disabled={submitting || !answer.trim() || !currentQuestion || !hasStarted}
+                >
                   <span className="material-icons">send</span>
                   {submitting ? 'Evaluating...' : 'Submit Answer'}
                 </button>
