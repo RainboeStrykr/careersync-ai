@@ -54,7 +54,15 @@ Pivot Mode addresses this by:
 - "Mark Phase as Done" button updates a market readiness progress circle (0% → 100%)
 
 ### Interview Prep
-- Domain-specific interview questions generated from skill gaps and mapped skills
+- Interactive AI-powered interview simulation with real-time evaluation
+- 5 progressive difficulty questions (Easy → Hard) tailored to your target domain
+- Live scoring system tracking relevance, clarity, depth, and technical accuracy
+- Instant feedback after each answer with strengths, weaknesses, and improvement suggestions
+- Detailed evaluation modal showing granular scores across 4 dimensions
+- Final comprehensive report with overall score, top strengths, key weaknesses, improvement roadmap, and study topics
+- Chat-style interface with smooth auto-scrolling and typing indicators
+- Session progress tracking (questions answered / total questions)
+- Questions generated based on your specific skill gaps and mapped skills
 
 ### Landing Page (`/`)
 - Fullscreen looping background video
@@ -90,7 +98,7 @@ The frontend never talks directly to FastAPI. All requests go through the Node.j
 | `/pivot` | Pivot Mode | Resume input + AI analysis form |
 | `/dashboard` | Dashboard | Analysis results snapshot |
 | `/roadmap` | Roadmap | 4-phase learning roadmap |
-| `/interview` | Interview Prep | Domain-specific interview questions |
+| `/interview` | Interview Prep | Interactive AI interview simulation with real-time evaluation |
 
 ---
 
@@ -103,7 +111,7 @@ All agents live in `careersync-ai/ai-services/agents/` and use LangChain with a 
 | Profile Agent | `profile_agent.py` | Extracts skills from resume text |
 | Mapping Agent | `mapping_agent.py` | Maps skills to target domain, identifies gaps |
 | Roadmap Agent | `roadmap_agent.py` | Generates basic and detailed 4-phase roadmaps |
-| Interview Agent | `interview_agent.py` | Generates 5 domain-specific interview questions |
+| Interview Agent | `interview_agent.py` | Generates progressive difficulty questions, evaluates answers with 4-dimension scoring, produces final reports |
 | Dashboard Agent | `dashboard_agent.py` | Generates skill scores, job matches, AI insight |
 
 ### API Endpoints (FastAPI — port 8000)
@@ -113,6 +121,10 @@ All agents live in `careersync-ai/ai-services/agents/` and use LangChain with a 
 | `GET` | `/` | Health check |
 | `POST` | `/analyze` | Full pivot analysis (skills, gaps, roadmap, questions, dashboard) |
 | `POST` | `/roadmap/detailed` | Detailed 4-phase roadmap with resources and tips |
+| `POST` | `/interview/start` | Initialize interview session with 5 progressive questions |
+| `POST` | `/interview/answer` | Submit answer, receive evaluation and next question |
+| `POST` | `/interview/submit` | Submit all answers at once (batch mode) |
+| `GET` | `/interview/report` | Retrieve final interview report with comprehensive feedback |
 
 ---
 
