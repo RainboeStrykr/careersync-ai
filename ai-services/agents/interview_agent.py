@@ -232,7 +232,7 @@ def generate_questions(target_domain: str) -> list:
         Do not include explanations or numbering. Return only the JSON array.
         """
     )
-    chain = prompt | llm_llama | parser
+    chain = prompt | llm | parser
     try:
         result = chain.invoke({"target_domain": target_domain})
         if isinstance(result, list):

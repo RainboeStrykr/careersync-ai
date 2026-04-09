@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const TOTAL_QUESTIONS = 5;
 const FASTAPI_BASE_URL = 'http://127.0.0.1:8000';
-const START_TIMEOUT_MS = 30000;
-const SUBMIT_TIMEOUT_MS = 120000;
-const REPORT_TIMEOUT_MS = 60000;
 
 function avgScore(evaluation) {
   if (!evaluation) return 0;
@@ -13,8 +10,7 @@ function avgScore(evaluation) {
     (Number(evaluation.relevance || 0) +
       Number(evaluation.clarity || 0) +
       Number(evaluation.depth || 0) +
-      Number(evaluation.technical_accuracy || 0)) /
-      4
+      Number(evaluation.technical_accuracy || 0)) / 4
   );
 }
 
@@ -31,159 +27,120 @@ async function fetchWithTimeout(url, timeoutMs, options = {}) {
 
 export default function Interview({ pivotResults }) {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState(Array(TOTAL_QUESTIONS).fill(''));
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const bottomRef = useRef(null);
+
   const [messages, setMessages] = useState([]);
-  const [currentQuestion, setCurrentQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [progress, setProgress] = useState(1);
+  const [inputText, setInputText] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
   const [loadingStart, setLoadingStart] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [finalReport, setFinalReport] = useState(null);
   const [isReportLoading, setIsReportLoading] = useState(false);
+  const [interviewDone, setInterviewDone] = useState(false);
+  const [finalReport, setFinalReport] = useState(null);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
-  const [answerValidation, setAnswerValidation] = useState('');
   const [selectedEval, setSelectedEval] = useState(null);
 
   const targetIndustry = pivotResults?.target_domain || 'your selected industry';
 
   const liveScore = useMemo(() => {
-    const evaluations = messages
-      .filter((m) => m.type === 'evaluation')
-      .map((m) => m.evaluation);
-    if (!evaluations.length) return 0;
-    const total = evaluations.reduce((sum, e) => sum + avgScore(e), 0);
-    return Math.round((total / evaluations.length) * 10);
+    const evals = messages.filter((m) => m.type === 'evaluation').map((m) => m.evaluation);
+    if (!evals.length) return 0;
+    return Math.round((evals.reduce((s, e) => s + avgScore(e), 0) / evals.length) * 10);
   }, [messages]);
 
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    // Reset interview UI when pivot context changes.
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, submitting, isReportLoading]);
+
+  // Reset when pivot context changes
+  useEffect(() => {
     setMessages([]);
-    setQuestions([]);
-    setAnswers(Array(TOTAL_QUESTIONS).fill(''));
-    setCurrentQuestionIndex(0);
-    setCurrentQuestion('');
-    setAnswer('');
-    setProgress(1);
+    setInputText('');
     setHasStarted(false);
+    setInterviewDone(false);
     setFinalReport(null);
-    setIsReportLoading(false);
+    setProgress(0);
     setError('');
-    setAnswerValidation('');
   }, [pivotResults?.target_domain]);
 
   const startInterview = async () => {
     setLoadingStart(true);
     setError('');
     try {
-      const res = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/start`, START_TIMEOUT_MS, {
+      const res = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/start`, 30000, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_industry: pivotResults?.target_domain || '' }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to start interview');
-      }
-      if (!data.question || typeof data.question !== 'string') {
-        throw new Error('Interview API did not return a valid question.');
-      }
-      const incomingQuestions = Array.isArray(data.questions) && data.questions.length
-        ? data.questions.slice(0, TOTAL_QUESTIONS)
-        : [data.question];
-      while (incomingQuestions.length < TOTAL_QUESTIONS) {
-        incomingQuestions.push(`Question ${incomingQuestions.length + 1}`);
-      }
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to start interview');
+      if (!data.question) throw new Error('No question returned from server.');
 
       setHasStarted(true);
+      setInterviewDone(false);
       setFinalReport(null);
-      setQuestions(incomingQuestions);
-      setCurrentQuestionIndex(0);
-      setCurrentQuestion(incomingQuestions[0]);
       setProgress(1);
-      setAnswers(Array(TOTAL_QUESTIONS).fill(''));
-      setMessages([{ type: 'question', text: incomingQuestions[0], number: 1 }]);
+      setMessages([{ type: 'question', text: data.question, number: 1, difficulty: data.difficulty }]);
     } catch (err) {
-      if (err.name === 'AbortError') {
-        setError('Start interview timed out. Check FastAPI server on port 8000 and Ollama.');
-      } else {
-        setError(err.message || 'Could not start interview. Please run pivot analysis first.');
-      }
+      setError(err.name === 'AbortError' ? 'Start timed out. Check FastAPI server.' : err.message);
     } finally {
       setLoadingStart(false);
     }
   };
 
-  const goToNextQuestionOrFinish = async () => {
-    if (submitting || isReportLoading || !currentQuestion) return;
-    if (!answer.trim()) {
-      setAnswerValidation('Please answer this question before moving to the next one.');
-      return;
-    }
-    setAnswerValidation('');
+  const sendAnswer = async () => {
+    if (!inputText.trim() || submitting || isReportLoading || interviewDone) return;
+    const userAnswer = inputText.trim();
+    setInputText('');
     setSubmitting(true);
     setError('');
 
-    const userAnswer = answer.trim();
-    const updatedAnswers = [...answers];
-    updatedAnswers[currentQuestionIndex] = userAnswer;
-    setAnswers(updatedAnswers);
-    setMessages((prev) => [...prev, { type: 'answer', text: userAnswer, number: currentQuestionIndex + 1 }]);
+    setMessages((prev) => [...prev, { type: 'answer', text: userAnswer }]);
 
     try {
-      const isLastQuestion = currentQuestionIndex >= TOTAL_QUESTIONS - 1;
-      if (isLastQuestion) {
-        setCurrentQuestion('');
-        setIsReportLoading(true);
-        const submitRes = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/submit`, SUBMIT_TIMEOUT_MS, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers: updatedAnswers }),
-        });
-        const submitData = await submitRes.json();
-        if (!submitRes.ok || submitData.error) {
-          throw new Error(submitData.error || 'Failed to evaluate interview');
-        }
+      const res = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/answer`, 120000, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: userAnswer }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Evaluation failed');
 
-        const evaluated = submitData.evaluations || [];
-        const transcript = [];
-        for (let i = 0; i < TOTAL_QUESTIONS; i += 1) {
-          transcript.push({ type: 'question', text: questions[i], number: i + 1 });
-          transcript.push({ type: 'answer', text: updatedAnswers[i], number: i + 1 });
-          if (evaluated[i]) {
-            transcript.push({ type: 'evaluation', evaluation: evaluated[i], number: i + 1 });
-          }
-        }
-        setMessages(transcript);
-        setFinalReport(submitData.report || null);
-        setProgress(TOTAL_QUESTIONS);
-      } else {
-        const nextIndex = currentQuestionIndex + 1;
-        const nextQuestion = questions[nextIndex];
-        setCurrentQuestionIndex(nextIndex);
-        setCurrentQuestion(nextQuestion);
-        setAnswer(updatedAnswers[nextIndex] || '');
-        setProgress(nextIndex + 1);
+      // Add evaluation bubble
+      if (data.evaluation) {
+        setMessages((prev) => [...prev, { type: 'evaluation', evaluation: data.evaluation }]);
+      }
+
+      if (data.interview_complete) {
+        setInterviewDone(true);
+        setIsReportLoading(true);
+        setMessages((prev) => [...prev, { type: 'system', text: 'Generating your final report...' }]);
+
+        const reportRes = await fetchWithTimeout(`${FASTAPI_BASE_URL}/interview/report`, 60000);
+        const reportData = await reportRes.json();
+        setFinalReport(reportData);
+        setMessages((prev) => prev.filter((m) => m.type !== 'system'));
+        setIsReportLoading(false);
+      } else if (data.next_question) {
+        setProgress(data.next_question_number);
         setMessages((prev) => [
           ...prev,
-          {
-            type: 'question',
-            text: nextQuestion,
-            number: nextIndex + 1,
-          },
+          { type: 'question', text: data.next_question, number: data.next_question_number, difficulty: data.next_difficulty },
         ]);
       }
     } catch (err) {
-      if (err.name === 'AbortError') {
-        setError('Interview request timed out. Verify FastAPI is running.');
-      } else {
-        setError(err.message || 'Interview request failed');
-      }
+      setError(err.name === 'AbortError' ? 'Request timed out.' : err.message);
     } finally {
       setSubmitting(false);
-      setIsReportLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendAnswer();
     }
   };
 
@@ -193,7 +150,7 @@ export default function Interview({ pivotResults }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1>AI Interview Simulation</h1>
-            <p>Tailored for {targetIndustry} | Progress {Math.min(progress, TOTAL_QUESTIONS)}/{TOTAL_QUESTIONS}</p>
+            <p>Tailored for {targetIndustry}{hasStarted ? ` · Question ${Math.min(progress, TOTAL_QUESTIONS)}/${TOTAL_QUESTIONS}` : ''}</p>
           </div>
           <span className="ai-chip" style={{ fontSize: '0.8rem' }}>
             <span className="material-icons">auto_awesome</span> Qwen3.5:4b
@@ -208,110 +165,143 @@ export default function Interview({ pivotResults }) {
       )}
 
       <div className="interview-layout">
-        <div className="interview-main">
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <div>
-                <h3 className="section-title" style={{ marginBottom: '0.3rem' }}>Interview Session</h3>
-                <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>
-                  Click start to begin your 5-question interview.
-                </p>
-              </div>
-              <button className="btn-primary" onClick={startInterview} disabled={loadingStart || submitting}>
-                <span className="material-icons">play_arrow</span>
-                {loadingStart ? 'Starting...' : 'Start Interview'}
-              </button>
-            </div>
-          </div>
+        {/* ── Chat column ── */}
+        <div className="interview-main" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <h3 className="section-title" style={{ marginBottom: '0.6rem' }}>Interview Chat</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.2rem' }}>
-              {loadingStart && <p style={{ color: 'var(--on-surface-variant)' }}>Starting interview...</p>}
-              {!loadingStart && !hasStarted && (
-                <p style={{ color: 'var(--on-surface-variant)' }}>Interview has not started yet.</p>
+          {/* Chat window */}
+          <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '480px' }}>
+            {/* Message list */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.25rem', marginBottom: '1rem' }}>
+              {!hasStarted && !loadingStart && (
+                <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--on-surface-variant)', padding: '2rem 0' }}>
+                  <span className="material-icons" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', display: 'block' }}>chat</span>
+                  <p>Click <strong>Start Interview</strong> to begin your session.</p>
+                </div>
               )}
-              {!loadingStart && hasStarted && messages.length === 0 && (
-                <p style={{ color: 'var(--on-surface-variant)' }}>No messages yet.</p>
+              {loadingStart && (
+                <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--on-surface-variant)', padding: '2rem 0' }}>
+                  <p>Starting interview...</p>
+                </div>
               )}
 
               {messages.map((msg, i) => {
-                if (msg.type === 'question') {
-                  return (
-                    <div key={i} style={{ background: 'var(--surface-container)', borderRadius: '0.85rem', padding: '0.9rem' }}>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginBottom: '0.25rem' }}>
-                        AI Question {msg.number}{msg.difficulty ? ` · ${msg.difficulty}` : ''}
+                if (msg.type === 'question') return (
+                  <div key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-icons" style={{ fontSize: '1rem', color: '#fff' }}>smart_toy</span>
+                    </div>
+                    <div style={{ background: 'var(--surface-container)', borderRadius: '0 0.85rem 0.85rem 0.85rem', padding: '0.75rem 1rem', maxWidth: '80%' }}>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', marginBottom: '0.3rem' }}>
+                        Question {msg.number}/{TOTAL_QUESTIONS}{msg.difficulty ? ` · ${msg.difficulty}` : ''}
                       </p>
-                      <p style={{ fontWeight: 600 }}>{msg.text}</p>
+                      <p style={{ fontWeight: 600, lineHeight: 1.5 }}>{msg.text}</p>
                     </div>
-                  );
-                }
-                if (msg.type === 'answer') {
-                  return (
-                    <div key={i} style={{ background: 'rgba(104,250,221,0.12)', borderRadius: '0.85rem', padding: '0.9rem', marginLeft: '2rem' }}>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', marginBottom: '0.25rem' }}>Your Answer {msg.number}</p>
-                      <p>{msg.text}</p>
-                    </div>
-                  );
-                }
-                const score = avgScore(msg.evaluation);
-                const oneStrength = msg.evaluation?.strengths?.[0] || 'Good effort shown.';
-                const oneWeakness = msg.evaluation?.weaknesses?.[0] || 'Add more industry-specific detail.';
-                return (
-                  <div key={i} style={{ border: '1px solid rgba(76,86,175,0.2)', borderRadius: '0.85rem', padding: '0.9rem' }}>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginBottom: '0.35rem' }}>Evaluation {msg.number}</p>
-                    <p style={{ marginBottom: '0.35rem' }}><strong>Score:</strong> {score}/10</p>
-                    <p style={{ marginBottom: '0.25rem' }}><strong>Strength:</strong> {oneStrength}</p>
-                    <p style={{ marginBottom: '0.6rem' }}><strong>Weakness:</strong> {oneWeakness}</p>
-                    <button className="btn-secondary" onClick={() => setSelectedEval(msg.evaluation)}>
-                      View Detailed Feedback
-                    </button>
                   </div>
                 );
+
+                if (msg.type === 'answer') return (
+                  <div key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', flexDirection: 'row-reverse' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-icons" style={{ fontSize: '1rem', color: '#fff' }}>person</span>
+                    </div>
+                    <div style={{ background: 'rgba(104,250,221,0.12)', borderRadius: '0.85rem 0 0.85rem 0.85rem', padding: '0.75rem 1rem', maxWidth: '80%' }}>
+                      <p style={{ lineHeight: 1.5 }}>{msg.text}</p>
+                    </div>
+                  </div>
+                );
+
+                if (msg.type === 'evaluation') {
+                  const score = avgScore(msg.evaluation);
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span className="material-icons" style={{ fontSize: '1rem', color: '#fff' }}>smart_toy</span>
+                      </div>
+                      <div style={{ border: '1px solid rgba(76,86,175,0.25)', borderRadius: '0 0.85rem 0.85rem 0.85rem', padding: '0.75rem 1rem', maxWidth: '80%' }}>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', marginBottom: '0.4rem' }}>Feedback</p>
+                        <p style={{ marginBottom: '0.25rem' }}>Score: <strong>{score}/10</strong></p>
+                        {msg.evaluation?.strengths?.[0] && <p style={{ fontSize: '0.85rem', color: 'var(--secondary)', marginBottom: '0.2rem' }}>✓ {msg.evaluation.strengths[0]}</p>}
+                        {msg.evaluation?.weaknesses?.[0] && <p style={{ fontSize: '0.85rem', color: 'var(--on-surface-variant)', marginBottom: '0.5rem' }}>↑ {msg.evaluation.weaknesses[0]}</p>}
+                        <button className="btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem' }} onClick={() => setSelectedEval(msg.evaluation)}>
+                          View full feedback
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (msg.type === 'system') return (
+                  <div key={i} style={{ textAlign: 'center', color: 'var(--on-surface-variant)', fontSize: '0.85rem', padding: '0.5rem' }}>
+                    <span>{msg.text}</span>
+                  </div>
+                );
+
+                return null;
               })}
+
+              {submitting && (
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span className="material-icons" style={{ fontSize: '1rem', color: '#fff' }}>smart_toy</span>
+                  </div>
+                  <div style={{ background: 'var(--surface-container)', borderRadius: '0 0.85rem 0.85rem 0.85rem', padding: '0.75rem 1rem' }}>
+                    <span style={{ display: 'inline-flex', gap: '4px' }}>
+                      {[0, 1, 2].map((d) => (
+                        <span key={d} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--on-surface-variant)', animation: `bounce 1.2s ${d * 0.2}s infinite` }} />
+                      ))}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input row */}
+            <div style={{ borderTop: '1px solid var(--outline-variant)', paddingTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+              {!hasStarted ? (
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={startInterview} disabled={loadingStart}>
+                  <span className="material-icons">play_arrow</span>
+                  {loadingStart ? 'Starting...' : 'Start Interview'}
+                </button>
+              ) : (
+                <>
+                  <textarea
+                    rows={2}
+                    style={{ flex: 1, resize: 'none', borderRadius: '0.75rem', border: '1px solid var(--outline-variant)', padding: '0.6rem 0.9rem', fontFamily: 'inherit', fontSize: '0.9rem', background: 'var(--surface-container)', color: 'var(--on-surface)', outline: 'none' }}
+                    placeholder={interviewDone ? 'Interview complete.' : 'Type your answer… (Enter to send, Shift+Enter for new line)'}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={submitting || isReportLoading || interviewDone}
+                  />
+                  <button
+                    className="btn-primary"
+                    style={{ padding: '0.6rem 0.9rem', borderRadius: '0.75rem', alignSelf: 'flex-end' }}
+                    onClick={sendAnswer}
+                    disabled={submitting || isReportLoading || interviewDone || !inputText.trim()}
+                  >
+                    <span className="material-icons">send</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          {!finalReport && (
+          {/* Final report */}
+          {finalReport && (
             <div className="card">
-              <h3 className="section-title" style={{ marginBottom: '0.5rem' }}>Your Answer</h3>
-              <textarea
-                rows={6}
-                className="form-group"
-                style={{ width: '100%', resize: 'vertical', marginBottom: '0.8rem' }}
-                placeholder="Type your response..."
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                disabled={submitting || loadingStart || isReportLoading || !currentQuestion || !hasStarted}
-              />
-              {answerValidation && (
-                <p style={{ color: 'var(--error)', fontSize: '0.8rem', marginBottom: '0.7rem' }}>{answerValidation}</p>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <span style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>
-                  {!hasStarted
-                    ? 'Click "Start Interview" to begin.'
-                    : currentQuestion
-                      ? `Answering Question ${Math.min(progress, TOTAL_QUESTIONS)}`
-                      : 'Interview complete'}
-                </span>
-                <button
-                  className="btn-primary"
-                  onClick={goToNextQuestionOrFinish}
-                  disabled={submitting || isReportLoading || !currentQuestion || !hasStarted}
-                >
-                  <span className="material-icons">arrow_forward</span>
-                  {submitting
-                    ? 'Evaluating...'
-                    : progress >= TOTAL_QUESTIONS
-                      ? 'Finish Interview'
-                      : 'Next Question'}
-                </button>
-              </div>
+              <h3 className="section-title" style={{ marginBottom: '0.75rem' }}>Final Report</h3>
+              <p style={{ marginBottom: '0.5rem' }}>Overall Score: <strong>{finalReport.overall_score}/100</strong></p>
+              <p style={{ marginBottom: '0.25rem' }}><strong>Top Strengths:</strong> {(finalReport.top_strengths || []).join(', ') || 'N/A'}</p>
+              <p style={{ marginBottom: '0.25rem' }}><strong>Key Weaknesses:</strong> {(finalReport.key_weaknesses || []).join(', ') || 'N/A'}</p>
+              <p style={{ marginBottom: '0.25rem' }}><strong>Roadmap:</strong> {(finalReport.improvement_roadmap || []).join(' · ') || 'N/A'}</p>
+              <p><strong>Study Topics:</strong> {(finalReport.topics_to_study || []).join(', ') || 'N/A'}</p>
             </div>
           )}
         </div>
 
+        {/* ── Sidebar ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="card">
             <h3 className="section-title">Progress</h3>
@@ -327,7 +317,7 @@ export default function Interview({ pivotResults }) {
               {liveScore || 0}
               <span style={{ fontSize: '0.9rem', color: 'var(--on-surface-variant)', marginLeft: '0.2rem' }}>/100</span>
             </p>
-            <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>Updates after each evaluation.</p>
+            <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem' }}>Updates after each answer.</p>
           </div>
 
           <div className="card">
@@ -339,31 +329,7 @@ export default function Interview({ pivotResults }) {
         </div>
       </div>
 
-      {isReportLoading && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="card" style={{ maxWidth: '520px', width: '100%', textAlign: 'center' }}>
-            <div style={{ width: '62px', height: '62px', margin: '0 auto 1rem', borderRadius: '9999px', border: '4px solid rgba(76,86,175,0.2)', borderTopColor: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
-            <h3 className="section-title" style={{ marginBottom: '0.4rem' }}>Generating Your Interview Results</h3>
-            <p style={{ color: 'var(--on-surface-variant)' }}>
-              Analyzing all answers and building your detailed feedback report...
-            </p>
-          </div>
-        </div>
-      )}
-
-      {finalReport && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <h3 className="section-title">Final Report</h3>
-          <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Overall Score:</strong> {finalReport.overall_score}/100
-          </p>
-          <p style={{ marginBottom: '0.35rem' }}><strong>Top Strengths:</strong> {(finalReport.top_strengths || []).join(', ') || 'N/A'}</p>
-          <p style={{ marginBottom: '0.35rem' }}><strong>Key Weaknesses:</strong> {(finalReport.key_weaknesses || []).join(', ') || 'N/A'}</p>
-          <p style={{ marginBottom: '0.35rem' }}><strong>Improvement Roadmap:</strong> {(finalReport.improvement_roadmap || []).join(' | ') || 'N/A'}</p>
-          <p><strong>Suggested Topics:</strong> {(finalReport.topics_to_study || []).join(', ') || 'N/A'}</p>
-        </div>
-      )}
-
+      {/* Detailed feedback modal */}
       {selectedEval && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setSelectedEval(null)}>
           <div style={{ background: 'var(--surface-lowest)', borderRadius: '1.25rem', padding: '1.6rem', maxWidth: '560px', width: '92%', boxShadow: '0 32px 64px rgba(0,0,0,0.2)' }} onClick={(e) => e.stopPropagation()}>
@@ -385,9 +351,9 @@ export default function Interview({ pivotResults }) {
       )}
 
       <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-6px); opacity: 1; }
         }
       `}</style>
     </>
