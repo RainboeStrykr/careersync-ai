@@ -24,7 +24,7 @@ export default function Sidebar() {
       </nav>
       <div className="sidebar-footer">
         <NavLink to="/help" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <span className="material-icons">help</span> Help Center
+          <span className="material-icons">help</span> About
         </NavLink>
         <Link to="/" className="nav-link">
           <span className="material-icons">logout</span> Exit
