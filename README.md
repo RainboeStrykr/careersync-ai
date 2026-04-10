@@ -172,12 +172,6 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in `careersync-ai/ai-services/` if it doesn't exist:
-
-```
-GOOGLE_API_KEY=your_key_here
-```
-
 Start the server:
 
 ```bash
