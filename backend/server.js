@@ -1,14 +1,41 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const multer = require("multer");
+const FormData = require("form-data");
 
 const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+
 app.use(cors());
 app.use(express.json());
 
 // Health check
 app.get("/", (req, res) => {
     res.send("Backend is running");
+});
+
+// 📄 PDF UPLOAD ROUTE
+app.post("/upload-resume", upload.single("resume"), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+
+        const form = new FormData();
+        form.append("file", req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype,
+        });
+
+        const response = await axios.post("http://127.0.0.1:8000/parse-pdf", form, {
+            headers: form.getHeaders(),
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        const detail = error.response?.data?.detail || error.message;
+        console.error("PDF Upload Error:", detail);
+        res.status(500).json({ error: "Failed to parse PDF.", detail });
+    }
 });
 
 // 🔥 MAIN ROUTE

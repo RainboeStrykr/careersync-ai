@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PivotMode({ savedResults, onResultsSaved }) {
@@ -8,6 +8,42 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
   const [timeline, setTimeline] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // PDF upload state
+  const [inputMode, setInputMode] = useState('paste'); // 'paste' | 'pdf'
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handlePdfUpload = async (file) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Please upload a PDF file.');
+      return;
+    }
+    setPdfFile(file);
+    setPdfFileName(file.name);
+    setPdfParsing(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('resume', file);
+      const response = await fetch('http://localhost:5000/upload-resume', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Failed to parse PDF');
+      setResumeText(data.resume_text);
+    } catch (err) {
+      setError('Could not extract text from PDF. Try a text-based PDF or paste manually.');
+      setPdfFile(null);
+      setPdfFileName('');
+    } finally {
+      setPdfParsing(false);
+    }
+  };
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -169,14 +205,88 @@ export default function PivotMode({ savedResults, onResultsSaved }) {
 
           <form className="profile-form" onSubmit={handleAnalyze}>
             <div className="form-group">
-              <label>Resume (Paste Text)</label>
-              <textarea
-                rows="6"
-                placeholder="Paste your resume content here..."
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                style={{ resize: 'vertical', width: '100%' }}
-              />
+              <label>Resume</label>
+
+              {/* Toggle */}
+              <div style={{
+                display: 'flex', gap: '0.5rem', marginBottom: '0.75rem',
+                background: 'var(--surface-low)', borderRadius: '8px', padding: '4px',
+              }}>
+                {[
+                  { mode: 'paste', icon: 'edit_note', label: 'Paste Text' },
+                  { mode: 'pdf',   icon: 'upload_file', label: 'Upload PDF' },
+                ].map(({ mode, icon, label }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setInputMode(mode); setError(''); }}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      gap: '0.4rem', padding: '0.45rem 0.75rem', borderRadius: '6px',
+                      border: 'none', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600,
+                      transition: 'all 0.2s',
+                      background: inputMode === mode ? 'var(--surface-lowest)' : 'transparent',
+                      color: inputMode === mode ? 'var(--primary)' : 'var(--on-surface-variant)',
+                      boxShadow: inputMode === mode ? 'var(--shadow-card)' : 'none',
+                    }}
+                  >
+                    <span className="material-icons" style={{ fontSize: '1rem' }}>{icon}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {inputMode === 'paste' ? (
+                <textarea
+                  rows="6"
+                  placeholder="Paste your resume content here..."
+                  value={resumeText}
+                  onChange={(e) => setResumeText(e.target.value)}
+                  style={{ resize: 'vertical', width: '100%' }}
+                />
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); handlePdfUpload(e.dataTransfer.files[0]); }}
+                  style={{
+                    border: '2px dashed',
+                    borderColor: pdfFileName ? 'var(--teal-accent)' : 'rgba(198,197,212,0.5)',
+                    borderRadius: '10px', padding: '2rem 1.5rem',
+                    textAlign: 'center', cursor: 'pointer',
+                    background: pdfFileName ? 'rgba(0,191,165,0.05)' : 'var(--surface-low)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handlePdfUpload(e.target.files[0])}
+                  />
+                  {pdfParsing ? (
+                    <>
+                      <span className="material-icons" style={{ fontSize: '2rem', color: 'var(--primary-mid)', animation: 'spin 1s linear infinite' }}>autorenew</span>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', color: 'var(--on-surface-variant)' }}>Extracting text from PDF...</p>
+                    </>
+                  ) : pdfFileName ? (
+                    <>
+                      <span className="material-icons" style={{ fontSize: '2rem', color: 'var(--teal-accent)' }}>check_circle</span>
+                      <p style={{ margin: '0.5rem 0 0.25rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--on-surface)' }}>{pdfFileName}</p>
+                      <p style={{ margin: 0, fontSize: '0.775rem', color: 'var(--on-surface-variant)' }}>
+                        {resumeText.length} characters extracted · <span style={{ color: 'var(--primary-mid)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setPdfFile(null); setPdfFileName(''); setResumeText(''); }}>Remove</span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-icons" style={{ fontSize: '2rem', color: 'var(--on-surface-variant)' }}>upload_file</span>
+                      <p style={{ margin: '0.5rem 0 0.25rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--on-surface)' }}>Drop your PDF here or click to browse</p>
+                      <p style={{ margin: 0, fontSize: '0.775rem', color: 'var(--on-surface-variant)' }}>Text-based PDFs only · Max recommended: 5 MB</p>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="form-row">

@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from typing import List, Optional
+import io
+from pypdf import PdfReader
 
 load_dotenv()
 
@@ -66,6 +68,22 @@ class InterviewSubmitRequest(BaseModel):
 @app.get("/")
 def home():
     return {"message": "CareerSync AI running 🚀"}
+
+
+# ── PDF Parse ──
+@app.post("/parse-pdf")
+async def parse_pdf(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    contents = await file.read()
+    try:
+        reader = PdfReader(io.BytesIO(contents))
+        text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Failed to parse PDF: {str(e)}")
+    if not text:
+        raise HTTPException(status_code=422, detail="Could not extract text from PDF. Try a text-based PDF.")
+    return {"resume_text": text}
 
 
 # ── Main analysis ──
