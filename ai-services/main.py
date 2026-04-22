@@ -128,18 +128,21 @@ def interview_start(data: InterviewStartRequest = InterviewStartRequest()):
     if not selected_industry:
         return {"error": "Target industry not found in session. Run /analyze first."}
 
+    # Generate only the first question to keep start fast
+    first_question = generate_interview_question_set(selected_industry, 1)[0]
+    
     interview_state = {
         "target_industry": selected_industry,
         "current_question_index": 0,
-        "questions": generate_interview_question_set(selected_industry, 5),
+        "questions": [first_question],  # Start with just one question
         "answers": [],
         "evaluations": [],
         "topics_covered": [],
     }
-    question = interview_state["questions"][0]
+    
     return {
-        "question": question,
-        "questions": interview_state["questions"],
+        "question": first_question,
+        "questions": [first_question],
         "question_number": 1,
         "total_questions": 5,
         "difficulty": DIFFICULTY_MAP[0],
@@ -181,7 +184,9 @@ def interview_answer(data: InterviewAnswerRequest):
 
     if interview_state["current_question_index"] < 5:
         next_difficulty = DIFFICULTY_MAP[interview_state["current_question_index"]]
-        next_q = interview_state["questions"][interview_state["current_question_index"]]
+        # Generate next question on-demand using LLM
+        next_q = generate_interview_question_set(interview_state["target_industry"], 1)[0]
+        interview_state["questions"].append(next_q)
 
     return {
         "evaluation": evaluation,
