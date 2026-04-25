@@ -53,7 +53,7 @@ export default function Onboarding() {
             fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
             marginBottom: '1.5rem' }}>
             <span className="material-icons" style={{ fontSize: '0.9rem' }}>auto_awesome</span>
-            Pivot Mode — MVP
+            Pivot Mode
           </div>
 
           <h1 style={{
@@ -111,7 +111,7 @@ export default function Onboarding() {
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--secondary)',
             textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
-            Pivot Mode Features
+            Features
           </p>
           <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '1.75rem',
             fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.03em', marginBottom: '2rem' }}>
@@ -167,7 +167,7 @@ export default function Onboarding() {
             border: '1px solid rgba(255,255,255,0.25)',
           }}>
             <span className="material-icons">rocket_launch</span>
-            Get Started — It's Free
+            Get Started
           </Link>
         </div>
       </section>
