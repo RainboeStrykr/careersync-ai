@@ -109,8 +109,18 @@ def analyze(data: AnalyzeRequest):
 
     roadmap = generate_roadmap(data.timeline, data.target_domain)
     questions = generate_questions(data.target_domain)
-    confidence = "80"
     dashboard = generate_dashboard_data(skills, mapped_skills_dict, gaps_list, data.target_domain)
+
+    # Derive confidence score from skill relevance scores produced by the dashboard agent.
+    # Formula: average skill score, penalised by gap ratio (each gap reduces score by 2pts, capped at 20pt penalty).
+    skill_scores = dashboard.get("skill_scores", [])
+    if skill_scores:
+        avg_skill_score = sum(s.get("score", 60) for s in skill_scores) / len(skill_scores)
+    else:
+        avg_skill_score = 60
+    total_skills = len(skills) or 1
+    gap_penalty = min(20, round((len(gaps_list) / total_skills) * 40))
+    confidence = str(max(10, min(99, round(avg_skill_score - gap_penalty))))
 
     # Keep selected industry available for interview simulation startup.
     interview_state["target_industry"] = data.target_domain

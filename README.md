@@ -32,7 +32,7 @@ Pivot Mode addresses this by:
 
 ---
 
-## Features
+## Pages
 
 ### Pivot Mode
 - Paste resume text, select a target domain (Healthcare IT, Railway, Finance) and a timeline (2 Days, 1 Week, 1 Month)
@@ -86,19 +86,6 @@ Browser (localhost:5173)
 ```
 
 The frontend never talks directly to FastAPI. All requests go through the Node.js proxy on port 5000, which forwards them to the FastAPI AI layer on port 8000.
-
----
-
-## Pages & Routes
-
-| Route | Page | Description |
-|---|---|---|
-| `/` | Landing | Hero page with video background |
-| `/onboarding` | Onboarding | Multi-section product explainer |
-| `/pivot` | Pivot Mode | Resume input + AI analysis form |
-| `/dashboard` | Dashboard | Analysis results snapshot |
-| `/roadmap` | Roadmap | 4-phase learning roadmap |
-| `/interview` | Interview Prep | Interactive AI interview simulation with real-time evaluation |
 
 ---
 
@@ -176,6 +163,8 @@ Start the server:
 
 ```bash
 uvicorn main:app --reload --port 8000
+# or
+python -m uvicorn main:app --reload --port 8000
 ```
 
 ### 2. Backend Proxy (Node.js — Port 5000)
