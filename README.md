@@ -4,6 +4,8 @@
 
 CareerSync AI is an AI-powered career transition platform built around **Pivot Mode** — a tool that takes your resume, maps your transferable skills to a target industry, generates a personalised learning roadmap, and prepares you for domain-specific interviews. All inference runs locally via Ollama (no external AI API required).
 
+[Watch the demo](https://drive.google.com/file/d/1h0_SRpuTOfIaNz0eAulgiwyGYZHnGNFj/view?usp=sharing)
+
 ---
 
 ## Table of Contents
