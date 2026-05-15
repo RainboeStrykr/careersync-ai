@@ -1,12 +1,9 @@
-# CareerSync AI
-
 <div align="center">
   <img src="media/logo-white.png" alt="CareerSync AI Logo" width="200" height="auto">
-  
+  <h1>CareerSync AI</h1>
   <p><strong>Switch Careers in Days, Not Years.</strong></p>
   
   ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-  ![License](https://img.shields.io/badge/license-MIT-blue)
   ![Version](https://img.shields.io/badge/version-1.0.0-orange)
   ![Python](https://img.shields.io/badge/python-3.9+-blue)
   ![Node.js](https://img.shields.io/badge/node.js-18+-green)
@@ -100,6 +97,8 @@ Pivot Mode addresses this by following a systematic 5-step process:
 ---
 
 ## 🏗️ Architecture
+
+![workflow](media/Workflow-Diagram.png)
 
 ### 🔄 System Overview
 
@@ -198,6 +197,8 @@ All agents live in `ai-services/agents/` and use **LangChain** with a local **Ol
 ---
 
 ## 🚀 Running the Application
+
+[Click here to watch the demo](https://drive.google.com/file/d/1h0_SRpuTOfIaNz0eAulgiwyGYZHnGNFj/view?usp=sharing)
 
 ### ⚡ Quick Start
 
