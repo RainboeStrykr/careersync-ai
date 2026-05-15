@@ -308,6 +308,7 @@ Once all services are running:
 | 📋 [**Documentation Index**](README.md) | All users | Complete navigation and overview |
 | 🏗️ [**Architecture Guide**](docs/architecture.md) | Developers | System design and component interactions |
 | 🔌 [**API Reference**](docs/api.md) | Developers | Complete FastAPI endpoint documentation |
+| 🚀 [**Academic Poster**](docs/academic-poster.pdf) | All users | Academic Poster used when displaying the project at an expo |
 
 ---
 
