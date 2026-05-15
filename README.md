@@ -32,6 +32,8 @@ CareerSync AI is an AI-powered career transition platform — that takes your re
 
 ## 🎯 Overview
 
+![screenshot](media/screenshot-mockup.png)
+
 CareerSync AI solves a real problem: **career switching is hard**. Most people have transferable skills but don't know how they map to a new domain, where to start learning, or how to prepare for interviews in a field they've never worked in.
 
 ### 🔄 How Pivot Mode Works
