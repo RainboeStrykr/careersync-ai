@@ -18,7 +18,6 @@ CareerSync AI is an AI-powered career transition platform — that takes your re
 ## 📋 Table of Contents
 
 - [🎯 Overview](#-overview)
-- [✨ Features](#-features)
 - [🏗️ Architecture](#️-architecture)
 - [📄 Pages & Routes](#-pages--routes)
 - [🤖 AI Agents](#-ai-agents)
@@ -26,7 +25,6 @@ CareerSync AI is an AI-powered career transition platform — that takes your re
 - [🚀 Running the Application](#-running-the-application)
 - [📚 Documentation](#-documentation)
 - [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
 
 ---
 
